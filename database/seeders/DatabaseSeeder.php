@@ -14,12 +14,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'admin',
-            'email' => 'admin@proteng.com',
-            'password' => Hash::make('admin'),
+        $this->call([
+            // UserSeeder::class,
+            WOTypeSeeder::class,
+            WOStatusSeeder::class,
+            WorkCenterSeeder::class,
+            WareHouseSeeder::class,
+            StatusSeeder::class,
+            LocationSeeder::class,
+            AssetSeeder::class
         ]);
     }
 }
