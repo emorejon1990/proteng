@@ -6,6 +6,7 @@ use Filament\Forms;
 use Filament\Tables;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Tables\Actions\AttachAction;
 use Illuminate\Database\Eloquent\Builder;
@@ -16,6 +17,12 @@ class DistributionsRelationManager extends RelationManager
 {
     protected static string $relationship = 'distributions';
 
+    public static function canViewForRecord($ownerRecord, string $pageClass): bool
+    {
+        // Solo mostrar si type_id == 2
+        return $ownerRecord->type_id == 2;
+    }
+
     public function form(Form $form): Form
     {
         return $form
@@ -23,6 +30,12 @@ class DistributionsRelationManager extends RelationManager
                 TextInput::make('name')
                     ->required()
                     ->maxLength(255),
+                Select::make('asset_id')
+                        ->label('Product')
+                        ->relationship('asset', 'name')
+                        ->searchable()
+                        ->preload()
+                        ->required(),
                 TextInput::make('quantity')->numeric()->suffix('Units'),
             ]);
     }

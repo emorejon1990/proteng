@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use Filament\Forms;
 use Filament\Tables;
+use App\Models\Asset;
 use App\Models\WOType;
 use Filament\Forms\Get;
 use Filament\Forms\Set;
@@ -38,16 +39,16 @@ class WorkOrderResource extends Resource
         return $form
             ->schema([
                 Section::make('Work Order')->schema([
-                    TextInput::make('name'),
+                    // TextInput::make('name'),
 
                     DatePicker::make('date')->displayFormat('m/d/Y')->native(false)->minDate(now()),
 
-                    Select::make('status_id')
-                        ->label('Status')
-                        ->relationship('status', 'name')
-                        ->searchable()
-                        ->preload()
-                        ->required(),
+                    // Select::make('status_id')
+                    //     ->label('Status')
+                    //     ->relationship('status', 'name')
+                    //     ->searchable()
+                    //     ->preload()
+                    //     ->required(),
 
                     Select::make('type_id')
                         ->label('Type')
@@ -67,6 +68,24 @@ class WorkOrderResource extends Resource
 
                     TextInput::make('quant')->numeric()->suffix('Units')
                         ->visible(fn (Get $get): bool => $get('type_id') != 2),
+
+                    Repeater::make('workOrderAssets')
+                        ->relationship('workOrderAssets') // <-- usa el hasMany del pivot-model
+                        ->schema([
+                            Select::make('asset_id')
+                                ->label('Product')
+                                ->relationship('asset', 'name') // usa la relación asset() en el modelo pivote
+                                ->required(),
+                            TextInput::make('quantity')
+                                ->label('Quantity')
+                                ->numeric()
+                                ->suffix('Units')
+                                ->required(),
+                        ])
+                        ->columns(2)
+                        ->label('Products')
+                        ->addActionLabel('Add Product')
+                        ->visible(fn (Get $get): bool => $get('type_id') == 2),
                 ])->columnSpan(2)->columns(2),
             ]);
     }
@@ -109,6 +128,16 @@ class WorkOrderResource extends Resource
                         })
                         ->visible(function ($record): bool {
                         return $record->status_id == 2;}),
+                    Action::make('approved')
+                        ->icon('heroicon-s-hand-thumb-up')
+                        ->color('success')
+                        ->requiresConfirmation()
+                        ->action(function ($record) {
+                            $record->status_id = 2;
+                            $record->save();
+                        })
+                        ->visible(function ($record): bool {
+                        return $record->status_id == 1;}),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
@@ -119,13 +148,10 @@ class WorkOrderResource extends Resource
 
     public static function getRelations(): array
     {
-        if (fn (Get $get): bool => $get('type_id') != 2) {
-            return [
-                DistributionsRelationManager::class
-            ];
-        }else {
-            return [];
-        }
+
+        return [
+            // DistributionsRelationManager::class
+        ];
 
     }
 
