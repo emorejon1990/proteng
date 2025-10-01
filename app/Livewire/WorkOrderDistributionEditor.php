@@ -15,28 +15,64 @@ class WorkOrderDistributionEditor extends Component
     public $products;
     public $checkedProducts = [];
     public Products $prod;
-    public $avalible;
+    public $stillalive = false;
 
     public function mount(WorkOrder $workOrder)
     {
         $this->workOrder = $workOrder;
+        $this->refreshProducts($workOrder);
 
-        // Obtén la relación y conviértela a array para que Livewire pueda manejarla sin perder datos
-        $this->products = $workOrder->distributions()->withPivot('quantity')->get()->map(function ($product) {
-            $prod = Products::where('asset_id',$product->id)->where('location_id','4')->get();
-            return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'quantity' => $product->pivot->quantity,
-                'dispo' => count($prod)
-            ];
-        });
+        // // Obtén la relación y conviértela a array para que Livewire pueda manejarla sin perder datos
+        // $this->products = $workOrder->distributions()->withPivot('quantity')->get()->map(function ($product) {
+        //     $prod = Products::where('asset_id',$product->id)->where('location_id','4')->get();
+        //     return [
+        //         'id' => $product->id,
+        //         'name' => $product->name,
+        //         'quantity' => $product->pivot->quantity,
+        //         'dispo' => count($prod)
+        //     ];
+        // });
 
         // Inicializa los checkboxes
         foreach ($this->products as $product) {
             $this->checkedProducts[$product['id']] = false;
         }
 
+    }
+
+    private function refreshProducts($workOrder)
+    {
+        // Obtén la relación y conviértela a array para que Livewire pueda manejarla sin perder datos
+        $this->products = $workOrder->distributions()->withPivot('quantity')->get()->map(function ($product) {
+            $prod = Products::where('asset_id',$product->id)->where('location_id','4')->get();
+            if (WorkOrder::where('asset_id', $product->id)->where('for', $this->workOrder->id)->exists())
+            {
+                $this->stillalive = false;
+            }
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'quantity' => $product->pivot->quantity,
+                'dispo' => count($prod),
+                'hasWO'    => WorkOrder::where('asset_id', $product->id)
+                    ->where('for', $this->workOrder->id)
+                    ->exists(),
+            ];
+
+        });
+        // dd($this->products);
+        foreach ($this->products as $prod) {
+            if($prod['hasWO'] == false)
+            {
+                $this->stillalive = true;
+            }
+        }
+
+        if ($this->stillalive == false)
+        {
+            $this->workOrder->status_id = 5;
+            $this->workOrder->save();
+        }
     }
 
     public function getIsAllCheckedProperty()
@@ -62,7 +98,7 @@ class WorkOrderDistributionEditor extends Component
         }else {
             $this->workOrder->status_id = 6;
             $this->workOrder->save();
-            session()->flash('done', 'Productos distribuidos correctamente.');
+            session()->flash('done', 'Distribution Ready');
             return redirect(request()->header('Referer'));
         }
 
@@ -78,9 +114,19 @@ class WorkOrderDistributionEditor extends Component
             return;
         }
 
+        // Evitar duplicados
+        $exists = WorkOrder::where('asset_id', $asset->id)
+            ->where('quant', $neededQuantity)
+            ->where('for', $this->workOrder->id)
+            ->exists();
+
+        if ($exists) {
+            session()->flash('error', "Ya existe una WorkOrder para este producto con la cantidad faltante.");
+            return;
+        }
+
         if (WorkOrder::find($this->workOrder->id, 'for')->for != null) {
             session()->flash('done', "The WorkOrder for {$asset->name} with {$neededQuantity} already exist.");
-            dump('el if');
         }else {
             // Crear la WorkOrder
             WorkOrder::create([
@@ -92,11 +138,17 @@ class WorkOrderDistributionEditor extends Component
                 'quant' => $neededQuantity,
                 'for' => $this->workOrder->id
             ]);
-            $this->workOrder->status_id = 5;
-            $this->workOrder->save();
+            // if ($this->stillalive == false) {
+            //     $this->workOrder->status_id = 5;
+            // }
 
-            // dd('fin');
+
+
+            // 🔑 Refrescar productos para ocultar el botón inmediatamente
+            $this->refreshProducts($this->workOrder);
+
             session()->flash('done', "The WorkOrder for {$asset->name} with {$neededQuantity} unities has been created.");
+
         }
 
     }
