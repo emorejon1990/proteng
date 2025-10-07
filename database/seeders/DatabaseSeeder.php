@@ -15,14 +15,15 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            // UserSeeder::class,
+            UserSeeder::class,
             WOTypeSeeder::class,
             WOStatusSeeder::class,
             WorkCenterSeeder::class,
             WareHouseSeeder::class,
             StatusSeeder::class,
             LocationSeeder::class,
-            AssetSeeder::class
+            AssetSeeder::class,
+            RolPermSeeder::class,
         ]);
     }
 }

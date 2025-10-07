@@ -8,6 +8,7 @@ use Filament\Tables;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
@@ -15,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\UserResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\UserResource\RelationManagers;
+use Spatie\Permission\Models\Role;
 
 class UserResource extends Resource
 {
@@ -39,6 +41,15 @@ class UserResource extends Resource
                         ->autocomplete(false)
                         ->revealable(),
 
+                    Select::make('role')
+                        ->label('Role')
+                        ->options(Role::pluck('name', 'name'))
+                        ->preload()
+                        ->searchable()
+                        ->default(fn ($record) => $record?->getRoleNames()->first()) // mostrar rol actual
+                        ->dehydrated(false) // 🔥 evita guardar en users
+                        ->required(),
+
                 ])->columnSpan(2)->columns(2),
             ]);
     }
@@ -49,6 +60,10 @@ class UserResource extends Resource
             ->columns([
                 TextColumn::make('name'),
                 TextColumn::make('email'),
+                TextColumn::make('rol')
+                    ->label('Role')
+                    ->state(fn ($record) => $record->getRoleNames()->implode(', '))
+                    ->sortable()
             ])
             ->filters([
                 //
