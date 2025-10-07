@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
-use App\Http\Controllers\WorkOrderController;
-use Log;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Database\Eloquent\Model;
+use App\Http\Controllers\WorkOrderController;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
