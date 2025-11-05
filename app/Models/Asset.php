@@ -14,4 +14,11 @@ class Asset extends Model
             ->withPivot(['quant'])
             ->withTimestamps();
     }
+
+    public function equipment()
+    {
+        return $this->belongsToMany(Equipment::class,'equi_asset')
+            ->withPivot(['quantity'])
+            ->withTimestamps();
+    }
 }
