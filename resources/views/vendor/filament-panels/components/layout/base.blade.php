@@ -101,6 +101,9 @@
         @endif
 
         {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::HEAD_END, scopes: $livewire->getRenderHookScopes()) }}
+        <!-- Laravel PWA 2 -->
+        <link rel="manifest" href="{{ asset('manifest.json') }}">
+        <meta name="theme-color" content="#1e40af">
     </head>
 
     <body
@@ -141,5 +144,15 @@
         {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::SCRIPTS_AFTER, scopes: $livewire->getRenderHookScopes()) }}
 
         {{ \Filament\Support\Facades\FilamentView::renderHook(\Filament\View\PanelsRenderHook::BODY_END, scopes: $livewire->getRenderHookScopes()) }}
+
+        <script>
+            if ('serviceWorker' in navigator) {
+                window.addEventListener('load', () => {
+                    navigator.serviceWorker.register('{{ asset('serviceworker.js') }}')
+                    .then(reg => console.log('✅ Service Worker registrado:', reg))
+                    .catch(err => console.error('❌ Error registrando SW:', err));
+                });
+            }
+        </script>
     </body>
 </html>

@@ -22,3 +22,7 @@ use Livewire\Volt\Volt;
 require __DIR__.'/auth.php';
 
 Route::put('/product/{product}', [\App\Http\Controllers\ProductController::class, 'update'])->name('product.update');
+
+Route::get('/offline', function () {
+    return view('vendor/laravelpwa/offline');
+});
