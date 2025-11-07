@@ -3,6 +3,7 @@
 return [
     'name' => 'Proteng Lab',
     'manifest' => [
+        'enabled' => env('LARAVELPWA_ENABLED', true),
         'name' => env('APP_NAME', 'Proteng Lab'),
         'short_name' => 'Proteng Lab',
         'start_url' => '/',
