@@ -1,6 +1,26 @@
+# --- Archivos sensibles ---
+.env
+.env.*
+/.env
+/.env.backup
+
+# --- Dependencias ---
 /node_modules
 /vendor
-/public/storage
-.env
 
-/.env
+# --- Compilados ---
+/public/hot
+/public/storage
+
+# --- Storage ---
+/storage/*.key
+/storage/app
+/storage/framework
+/storage/logs
+
+# --- IDE y sistema ---
+/.idea
+/.vscode
+/.phpunit.result.cache
+/.DS_Store
+Thumbs.db
