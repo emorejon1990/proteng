@@ -154,5 +154,6 @@
                 });
             }
         </script>
+        <script src="{{ asset('js/pwaInstall.js') }}"></script>
     </body>
 </html>
