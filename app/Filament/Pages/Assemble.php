@@ -5,6 +5,7 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use App\Models\WorkOrder;
 use Filament\Support\Enums\MaxWidth;
+use Illuminate\Support\Facades\Auth;
 
 class Assemble extends Page
 {
@@ -17,6 +18,18 @@ class Assemble extends Page
     protected static ?int $navigationSort = 1;
 
     public $workOrders;
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->hasRole(['Admin', 'Manager','Worker']);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
 
     public static function getNavigationBadge(): ?string
     {

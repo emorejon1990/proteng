@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
 use App\Models\WorkOrder;
+use Illuminate\Support\Facades\Auth;
 
 class Distribution extends Page
 {
@@ -16,6 +17,18 @@ class Distribution extends Page
     protected static ?int $navigationSort = 4;
 
     public $workOrders;
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->hasRole(['Admin', 'Manager','Worker']);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
 
     public static function getNavigationBadge(): ?string
     {

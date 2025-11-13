@@ -4,14 +4,15 @@ namespace App\Filament\Pages;
 
 // use Filament\Forms;
 
+use Carbon\Carbon;
 use App\Models\User;
 use App\Models\Asset;
 use App\Models\Status;
 use App\Models\Location;
 use App\Models\Products;
-use Carbon\Carbon;
 use Filament\Forms\Form;
 use Filament\Pages\Page;
+use Illuminate\Support\Facades\Auth;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Contracts\HasForms;
@@ -34,6 +35,18 @@ class RefillProd extends Page implements HasForms
     public ?array $data = [];
 
     use InteractsWithForms;
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->hasRole(['Admin']);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
 
     public function form(Form $form): Form
     {

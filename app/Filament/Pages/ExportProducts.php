@@ -7,6 +7,7 @@ use App\Models\Location;
 use App\Models\Products;
 use Filament\Pages\Page;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 
 class ExportProducts extends Page
 {
@@ -21,6 +22,18 @@ class ExportProducts extends Page
     protected static ?string $navigationGroup = 'Manager Tools';
 
     protected static ?int $navigationSort = 1;
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->hasRole(['Admin', 'Manager']);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
 
     public function exportPdf()
     {

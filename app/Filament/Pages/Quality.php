@@ -4,6 +4,7 @@ namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
 use App\Models\WorkOrder;
+use Illuminate\Support\Facades\Auth;
 
 class Quality extends Page
 {
@@ -20,6 +21,18 @@ class Quality extends Page
     public ?string $scannedCode = null;
 
     protected $listeners = ['code-scanned' => 'setCode'];
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->hasRole(['Admin', 'Manager','Worker']);
+    }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        return static::canAccess();
+    }
 
     public static function getNavigationBadge(): ?string
     {

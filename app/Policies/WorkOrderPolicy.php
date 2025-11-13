@@ -13,7 +13,7 @@ class WorkOrderPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['Admin']);
+        return $user->hasRole(['Admin','Manager','Worker']);
     }
 
     /**

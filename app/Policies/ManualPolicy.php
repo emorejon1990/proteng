@@ -29,7 +29,7 @@ class ManualPolicy
      */
     public function create(User $user): bool
     {
-        return true;
+        return $user->hasRole(['Admin','Manager']);
     }
 
     /**
@@ -37,7 +37,7 @@ class ManualPolicy
      */
     public function update(User $user, Manual $manual): bool
     {
-        return true;
+        return $user->hasRole(['Admin','Manager']);
     }
 
     /**
@@ -45,7 +45,7 @@ class ManualPolicy
      */
     public function delete(User $user, Manual $manual): bool
     {
-        return true;
+        return $user->hasRole(['Admin','Manager']);
     }
 
     /**
