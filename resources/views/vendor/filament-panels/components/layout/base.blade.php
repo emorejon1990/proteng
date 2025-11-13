@@ -154,6 +154,31 @@
                 });
             }
         </script>
+        {{-- Botón de instalación universal --}}
+        <div class="fixed z-50" style="bottom: 20px;right: 20px;">
+            <button id="installButton"
+                class="text-white px-4 py-2 rounded-full shadow-lg transition"
+                style="background-color: #d97706;">
+                📲 Install App
+            </button>
+        </div>
+
+        {{-- Modal iOS --}}
+        <div id="iosModal"
+            class="hidden fixed inset-0 flex items-center justify-center z-50" style="background-color: rgba(0,0,0,0.5);">
+            <div class="bg-white rounded-2xl shadow-xl p-6 max-w-sm mx-auto text-center">
+                <h2 class="text-lg font-bold mb-3">Add to Home Screen</h2>
+                <p class="text-gray-700 mb-4">
+                    To install the app on your iPhone or iPad:<br><br>
+                    1️⃣ Tap the buttom <img src="/images/icons/share-ios.png" class="inline-block h-5 align-middle"> at the bottom.<br>
+                    2️⃣ Select <strong>“Add to Home Screen”</strong>.
+                </p>
+                <button id="closeIosModal"
+                    class="text-white px-4 py-2 rounded-full transition" style="background-color: #d97706;">
+                    Ok
+                </button>
+            </div>
+        </div>
         <script src="{{ asset('js/pwaInstall.js') }}"></script>
     </body>
 </html>
