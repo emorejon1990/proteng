@@ -25,9 +25,9 @@ class HistoryResource extends Resource
 
     protected static ?string $navigationLabel = 'Products History';
 
-    protected static ?string $pluralModelLabel = 'Historial';
+    protected static ?string $pluralModelLabel = 'History';
 
-    protected static ?string $modelLabel = 'Registro';
+    protected static ?string $modelLabel = 'Register';
 
     // public static function form(Form $form): Form
     // {
@@ -59,42 +59,42 @@ class HistoryResource extends Resource
             ->columns([
                 // Número de serie del producto
                 TextColumn::make('product.serial')
-                    ->label('Producto (Serie)')
+                    ->label('Product (Serial)')
                     ->searchable()
                     ->sortable(),
 
                 // Tipo de proceso
                 TextColumn::make('process')
-                    ->label('Proceso')
+                    ->label('Process')
                     ->searchable()
                     ->sortable(),
 
                 // Ubicación
                 TextColumn::make('location')
-                    ->label('Ubicación')
+                    ->label('Location')
                     ->searchable(),
 
                 // Fecha del evento
                 TextColumn::make('date')
                     ->dateTime('d/m/Y')
-                    ->label('Fecha')
+                    ->label('Date')
                     ->sortable(),
 
                 // Usuario que realizó el cambio
                 TextColumn::make('user.name')
-                    ->label('Usuario')
+                    ->label('User')
                     ->sortable(),
 
                 // Descripción del proceso
                 TextColumn::make('description')
-                    ->label('Descripción')
+                    ->label('Description')
                     ->limit(50),
             ])->defaultSort('date', 'desc')
             ->filters([
                 SelectFilter::make('product_id')
                     ->relationship('product', 'serial')
                     ->searchable()
-                    ->label('Producto')
+                    ->label('Product')
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
