@@ -7,6 +7,8 @@ use Livewire\Component;
 use App\Models\Products;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\Auth;
+use App\Http\Controllers\ProductController;
+use App\Http\Controllers\ProductsController;
 
 class WorkOrderFillingEditor extends Component
 {
@@ -69,12 +71,16 @@ class WorkOrderFillingEditor extends Component
     {
         if (!$this->currentProduct) return;
 
+        $serial = ProductsController::Serial();
+
         // Asigna valores obligatorios
         $this->currentProduct->fill_by = Auth::id();
         $this->currentProduct->fill_date = now();
         $this->currentProduct->filled = $this->filled;
         $this->currentProduct->weight = $this->currentProductData['weight'];
         $this->currentProduct->location_id = 2;
+        $this->currentProduct->serial = $serial;
+
 
         $this->validate([
             'currentProduct.fill_by' => 'required|integer',
@@ -92,6 +98,11 @@ class WorkOrderFillingEditor extends Component
         ]);
 
         $this->currentProduct->save();
+        $this->currentProduct->logHistory(
+            process: "Filled",
+            description: "Filled and Serial",
+            location: 'Filled Area'
+        );
 
         if ($this->currentIndex < count($this->productIds) - 1) {
             $this->currentIndex++;
@@ -101,6 +112,7 @@ class WorkOrderFillingEditor extends Component
             $this->workOrder->wc_changed_at = now();
             $this->workOrder->save();
             session()->flash('done', '¡Done!');
+            $this->dispatch('reload-page');
         }
     }
 

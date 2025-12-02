@@ -28,26 +28,26 @@ class MoveWorkOrdersAfterFiveDays extends Command
      */
     public function handle()
     {
-        $this->info("Entra al schedule at " .Carbon::now());
+        $this->info(Carbon::now(). "- Entra al schedule");
         $originWc_id = 3; // origin Waiting Area
         $targetWc_id = 4; // target Quality
         // Asumiendo que tienes un campo como `wc_id` y `wc_changed_at` en la tabla
         $workOrders = WorkOrder::where('wc_id', $originWc_id)
             ->where('wc_changed_at', '<=', Carbon::now()->subDays(5))
             ->get();
-            $this->info("Se crearon {$workOrders->count()} at " .Carbon::now());
+            $this->info(Carbon::now(). "- Se crearon {$workOrders->count()}");
         foreach ($workOrders as $workOrder) {
             $workOrder->wc_id = $targetWc_id;
             $workOrder->wc_changed_at = now(); // registra el nuevo cambio
-            $this->info("Se modifico el wo {$workOrder->id} at " .Carbon::now());
+            $this->info(Carbon::now(). "- Se modifico el wo {$workOrder->id}");
             foreach ($workOrder->products as $product) {
                 $product->location_id = 3;
-                $this->info("Se modifico el product {$product->id} at " .Carbon::now());
+                $this->info(Carbon::now(). "- Se modifico el product {$product->id}");
                 $product->save();
             }
             $workOrder->save();
 
-            $this->info("WorkOrder #{$workOrder->id} move to work center {$targetWc_id} at " .Carbon::now());
+            $this->info(Carbon::now(). "- WorkOrder #{$workOrder->id} move to work center {$targetWc_id}");
         }
     }
 }

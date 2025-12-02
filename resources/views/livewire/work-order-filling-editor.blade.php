@@ -68,3 +68,8 @@
         </div>
     @endif
 </div>
+<script>
+    document.addEventListener('reload-page', () => {
+        location.reload();
+    });
+</script>

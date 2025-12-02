@@ -65,6 +65,7 @@ class WorkOrderAssembleEditor extends Component
             $this->workOrder->wc_id = 2;
             $this->workOrder->save();
             session()->flash('done', '¡Done!');
+            $this->dispatch('reload-page');
         }
     }
 

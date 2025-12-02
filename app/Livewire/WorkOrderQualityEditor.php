@@ -101,12 +101,17 @@ class WorkOrderQualityEditor extends Component
         ]);
 
         $this->currentProduct->save();
+        $this->currentProduct->logHistory(
+            process: "Qualified",
+            description: "Qualified",
+            location: 'Quality Area'
+        );
 
         if ($this->currentIndex < count($this->productIds) - 1) {
             $this->currentIndex++;
             $this->loadCurrentProduct();
         } else {
-            if ($this->workOrder->products()) {
+            if ($this->workOrder->products()->exists()) {
                 $this->workOrder->wc_id = 3;
             } else {
                 $this->workOrder->wc_id = null;
@@ -121,6 +126,7 @@ class WorkOrderQualityEditor extends Component
 
             $this->workOrder->save();
             session()->flash('done', '¡Done!');
+            $this->dispatch('reload-page');
         }
     }
 

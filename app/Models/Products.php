@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -98,7 +99,21 @@ class Products extends Model
         return optional($this->location)->name;
     }
 
+    public function history()
+    {
+        return $this->hasMany(History::class, 'products_id');
+    }
 
+    public function logHistory($process, $description = null, $location = null)
+    {
+        return $this->history()->create([
+            'process' => $process,
+            'date' => now(),
+            'user_id' => Auth::id(),
+            'location' => $location,
+            'description' => $description,
+        ]);
+    }
 
 
 }

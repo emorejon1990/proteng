@@ -5,7 +5,14 @@
             if (value) {
                 setTimeout(() => {
                     const html5QrCode = new Html5Qrcode('reader');
-                    const qrConfig = { fps: 10, qrbox: 250 };
+                    const qrConfig = {
+                        fps: 10,
+                        qrbox: 250,
+                        formatsToSupport: [
+                            Html5QrcodeSupportedFormats.QR_CODE,
+                            Html5QrcodeSupportedFormats.CODE_39
+                        ]
+                    };
 
                     html5QrCode.start(
                         { facingMode: 'environment' },
