@@ -62,7 +62,7 @@ class QuickBooks extends Page
             'refreshTokenKey'  => $token->refresh_token,
             'realmId'          => $token->realm_id,
             'scope'            => env('QB_SCOPE'), // desde .env
-            'baseUrl'          => env('QB_ENV', 'production'),
+            'baseUrl'          => env('QB_ENV'),
         ]);
 
         try {

@@ -17,7 +17,7 @@ class QuickBooksController extends Controller
             'ClientSecret' => env('QB_CLIENT_SECRET'),
             'RedirectURI' => env('QB_REDIRECT_URI'),
             'scope' => env('QB_SCOPE'),
-            'baseUrl' => env('QB_ENV', 'production'), // 'sandbox' o 'production'
+            'baseUrl' => env('QB_ENV'), // 'sandbox' o 'production'
         ], $overrides);
 
         return DataService::Configure($config);

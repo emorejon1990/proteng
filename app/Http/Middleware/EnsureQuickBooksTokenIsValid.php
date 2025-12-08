@@ -35,7 +35,7 @@ class EnsureQuickBooksTokenIsValid
             'refreshTokenKey' => $tokenModel->refresh_token,
             'realmId'          => $tokenModel->realm_id,
             'scope'            => env('QB_SCOPE'),
-            'baseUrl'          => env('QB_ENV', 'production'),
+            'baseUrl'          => env('QB_ENV'),
         ]);
 
         // ✅ 3. Intento de renovación automática (seguro)
