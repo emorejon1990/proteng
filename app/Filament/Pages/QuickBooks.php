@@ -68,6 +68,8 @@ class QuickBooks extends Page
         try {
             $customers = $dataService->Query("SELECT * FROM Customer MAXRESULTS 50");
 
+            dd($customers);
+
             $this->customers = collect($customers)->map(function ($c) {
                 return [
                     'id'    => $c->Id ?? null,
