@@ -7,9 +7,13 @@ use Filament\Actions\Action;
 use Illuminate\Support\Facades\Http;
 use App\Models\QuickbooksToken;
 use QuickBooksOnline\API\DataService\DataService;
+use Filament\Notifications\Concerns\InteractsWithNotifications;
+
 
 class QuickBooks extends Page
 {
+    use InteractsWithNotifications;
+
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     protected static ?string $navigationLabel = 'QuickBooks';
     protected static ?string $title = 'Integración QuickBooks';
