@@ -13,6 +13,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         // AddSecurityHeaders::class;
+        $middleware->alias([
+            'quickbooks' => \App\Http\Middleware\EnsureQuickBooksTokenIsValid::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

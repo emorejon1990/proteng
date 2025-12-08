@@ -1,7 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\QuickBooksController;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -25,4 +26,14 @@ Route::put('/product/{product}', [\App\Http\Controllers\ProductController::class
 
 Route::get('/offline', function () {
     return view('vendor/laravelpwa/offline');
+});
+
+Route::get('/quickbooks/connect', [QuickBooksController::class, 'connect']);
+Route::get('/quickbooks/callback', [QuickBooksController::class, 'callback']);
+
+Route::middleware(['quickbooks'])->group(function () {
+
+    Route::get('/quickbooks/customers', [QuickBooksController::class, 'customers']);
+    Route::get('/quickbooks/invoices', [QuickBooksController::class, 'invoices']);
+
 });

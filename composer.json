@@ -13,6 +13,7 @@
         "laravel/tinker": "^2.10.1",
         "livewire/flux": "^2.1.1",
         "livewire/volt": "^1.7.0",
+        "quickbooks/v3-php-sdk": "^6.2",
         "silviolleite/laravelpwa": "^2.0",
         "spatie/laravel-permission": "^6.21"
     },
