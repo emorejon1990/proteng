@@ -23,6 +23,8 @@ class HistoryResource extends Resource
 
     protected static ?string $navigationGroup = 'Settings';
 
+    protected static ?int $navigationSort = 20;
+
     protected static ?string $navigationLabel = 'Products History';
 
     protected static ?string $pluralModelLabel = 'History';
