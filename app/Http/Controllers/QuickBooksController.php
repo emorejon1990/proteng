@@ -64,14 +64,14 @@ class QuickBooksController extends Controller
                 ]
             );
 
-            return redirect('/admin')->with('success', 'QuickBooks conectado correctamente');
+            return redirect('/quick-books')->with('success', 'QuickBooks conectado correctamente');
         } catch (Exception $e) {
             // log para depuración
             \Log::error('QuickBooks callback error: '.$e->getMessage(), [
                 'request' => $request->all(),
             ]);
 
-            return redirect('/admin')->with('error', 'Error al conectar con QuickBooks: ' . $e->getMessage());
+            return redirect('/quick-books')->with('error', 'Error al conectar con QuickBooks: ' . $e->getMessage());
         }
     }
 
