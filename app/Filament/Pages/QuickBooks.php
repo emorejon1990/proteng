@@ -4,16 +4,13 @@ namespace App\Filament\Pages;
 
 use Filament\Pages\Page;
 use Filament\Actions\Action;
-use Illuminate\Support\Facades\Http;
 use App\Models\QuickbooksToken;
+use Illuminate\Support\Facades\Http;
+use Filament\Notifications\Notification;
 use QuickBooksOnline\API\DataService\DataService;
-use Filament\Notifications\Concerns\InteractsWithNotifications;
-
 
 class QuickBooks extends Page
 {
-    use InteractsWithNotifications;
-
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     protected static ?string $navigationLabel = 'QuickBooks';
     protected static ?string $title = 'Integración QuickBooks';
@@ -50,7 +47,10 @@ class QuickBooks extends Page
         $token = QuickbooksToken::first();
 
         if (! $token) {
-            $this->notify('danger', 'QuickBooks no está conectado.');
+            Notification::make()
+                ->title('QuickBooks no está conectado')
+                ->danger()
+                ->send();
             return;
         }
 
@@ -58,10 +58,10 @@ class QuickBooks extends Page
             'auth_mode'        => 'oauth2',
             'ClientID'         => env('QB_CLIENT_ID'),
             'ClientSecret'     => env('QB_CLIENT_SECRET'),
-            'accessTokenKey'  => $token->access_token,
-            'refreshTokenKey' => $token->refresh_token,
+            'accessTokenKey'   => $token->access_token,
+            'refreshTokenKey'  => $token->refresh_token,
             'realmId'          => $token->realm_id,
-            'scope'             => env('QB_SCOPE'),
+            'scope'            => env('QB_SCOPE'), // desde .env
             'baseUrl'          => env('QB_ENV', 'production'),
         ]);
 
@@ -77,10 +77,17 @@ class QuickBooks extends Page
                 ];
             })->toArray();
 
-            $this->notify('success', 'Customers cargados correctamente');
+            Notification::make()
+                ->title('Customers cargados correctamente')
+                ->success()
+                ->send();
 
         } catch (\Exception $e) {
-            $this->notify('danger', 'Error al consultar QuickBooks: ' . $e->getMessage());
+            Notification::make()
+                ->title('Error al consultar QuickBooks')
+                ->body($e->getMessage())
+                ->danger()
+                ->send();
         }
     }
 }
