@@ -66,10 +66,13 @@ class QuickBooks extends Page
             'ClientSecret'     => env('QB_CLIENT_SECRET'),
             'accessTokenKey'   => $token->access_token,
             'refreshTokenKey'  => $token->refresh_token,
-            'realmId'          => $token->realm_id,
+            // 'realmId'          => $token->realm_id,
             'scope'            => env('QB_SCOPE'), // desde .env
             'baseUrl'          => env('QB_ENV'),
         ]);
+
+        $dataService->throwExceptionOnError(true);
+        $dataService->getServiceContext()->setRealmId($token->realm_id);
 
 
         try {
