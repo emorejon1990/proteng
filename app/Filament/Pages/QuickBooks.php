@@ -54,6 +54,12 @@ class QuickBooks extends Page
             return;
         }
 
+        dd([
+            'token_completo' => $token,
+            'realm_usado'    => $token?->realm_id,
+            'env_base'       => env('QB_ENV'),
+        ]);
+
         $dataService = DataService::Configure([
             'auth_mode'        => 'oauth2',
             'ClientID'         => env('QB_CLIENT_ID'),
