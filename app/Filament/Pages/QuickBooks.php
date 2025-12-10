@@ -68,7 +68,11 @@ class QuickBooks extends Page
         try {
             $customers = $dataService->Query("SELECT * FROM Customer MAXRESULTS 50");
 
-            dump($customers);
+            $lastError = $dataService->getLastError();
+            dd([
+                'customers' => $customers,
+                'error' => $lastError ? $lastError->getResponseBody() : null,
+            ]);
 
             $this->customers = collect($customers)->map(function ($c) {
                 return [
