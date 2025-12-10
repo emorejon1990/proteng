@@ -68,7 +68,7 @@ class QuickBooks extends Page
         dd(
             $token->realm_id,
             env('QB_ENV'),
-            $dataService->getServiceContext()->BaseUrl
+            // $dataService->getServiceContext()->BaseUrl
         );
 
         try {
