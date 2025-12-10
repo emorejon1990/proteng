@@ -8,6 +8,7 @@ use App\Models\QuickbooksToken;
 use Illuminate\Support\Facades\Http;
 use Filament\Notifications\Notification;
 use QuickBooksOnline\API\DataService\DataService;
+use QuickBooksOnline\API\Exception\SdkException;
 
 class QuickBooks extends Page
 {
@@ -44,7 +45,7 @@ class QuickBooks extends Page
      */
     public function loadCustomers(): void
     {
-        $token = QuickbooksToken::first();
+        $token = \App\Models\QuickbooksToken::whereNotNull('realm_id')->latest()->first();
 
         if (! $token) {
             Notification::make()
@@ -55,30 +56,27 @@ class QuickBooks extends Page
         }
 
 
-        $dataService = DataService::Configure([
+        $config = [
             'auth_mode'        => 'oauth2',
             'ClientID'         => env('QB_CLIENT_ID'),
             'ClientSecret'     => env('QB_CLIENT_SECRET'),
             'accessTokenKey'   => $token->access_token,
-            'refreshTokenKey'  => $token->refresh_token,
-            // 'realmId'          => $token->realm_id,
-            'scope'            => env('QB_SCOPE'), // desde .env
+            'refreshTokenKey' => $token->refresh_token,
+            'realmId'          => (string) $token->realm_id, // ✅ FORZADO A STRING
+            'scope'            => env('QB_SCOPE'),
             'baseUrl'          => env('QB_ENV'),
-        ]);
+        ];
 
+        $dataService = DataService::Configure($config);
+
+        // ✅ FUERZA EL CONTEXTO MANUALMENTE
         $dataService->throwExceptionOnError(true);
-        $dataService->getServiceContext()->setRealmId($token->realm_id);
 
+        $customers = null;
+        $error = null;
 
         try {
-            $customers = $dataService->Query("SELECT * FROM Customer MAXRESULTS 50");
-
-            $lastError = $dataService->getLastError();
-            dd([
-                'customers' => $customers,
-                'error' => $lastError ? $lastError->getResponseBody() : null,
-            ]);
-
+            $customers = $dataService->Query("SELECT * FROM Customer");
             $this->customers = collect($customers)->map(function ($c) {
                 return [
                     'id'    => $c->Id ?? null,
@@ -92,8 +90,8 @@ class QuickBooks extends Page
                 ->title('Customers cargados correctamente')
                 ->success()
                 ->send();
-
-        } catch (\Exception $e) {
+        } catch (SdkException $e) {
+            // $error = $e->getMessage();
             Notification::make()
                 ->title('Error al consultar QuickBooks')
                 ->body($e->getMessage())
