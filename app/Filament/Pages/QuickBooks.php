@@ -65,6 +65,12 @@ class QuickBooks extends Page
             'baseUrl'          => env('QB_ENV'),
         ]);
 
+        dd(
+            $token->realm_id,
+            env('QB_ENV'),
+            $dataService->getServiceContext()->BaseUrl
+        );
+
         try {
             $customers = $dataService->Query("SELECT * FROM Customer MAXRESULTS 50");
 
