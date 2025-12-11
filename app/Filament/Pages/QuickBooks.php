@@ -9,6 +9,8 @@ use Illuminate\Support\Facades\Http;
 use Filament\Notifications\Notification;
 use QuickBooksOnline\API\DataService\DataService;
 use QuickBooksOnline\API\Exception\SdkException;
+use QuickBooksOnline\API\Exception\ServiceException;
+use QuickBooksOnline\API\Facades\Customer;
 
 class QuickBooks extends Page
 {
@@ -56,27 +58,28 @@ class QuickBooks extends Page
         }
 
 
-        $config = [
+        $dataService = DataService::Configure([
             'auth_mode'        => 'oauth2',
             'ClientID'         => env('QB_CLIENT_ID'),
             'ClientSecret'     => env('QB_CLIENT_SECRET'),
             'accessTokenKey'   => $token->access_token,
             'refreshTokenKey' => $token->refresh_token,
-            'realmId'          => (string) $token->realm_id, // ✅ FORZADO A STRING
+            'realmId'          => (string) $token->realm_id,
             'scope'            => env('QB_SCOPE'),
-            'baseUrl'          => env('QB_ENV'),
-        ];
+            'baseUrl'          => env('QB_ENV'), // Development
+        ]);
 
-        $dataService = DataService::Configure($config);
-
-        // ✅ FUERZA EL CONTEXTO MANUALMENTE
         $dataService->throwExceptionOnError(true);
+
+        // ✅ FORZAR MANUALMENTE EL REALM EN EL CONTEXTO (BUG DEL SDK)
+        $serviceContext = $dataService->getServiceContext();
+        $serviceContext->realmId = (string) $token->realm_id;
 
         $customers = null;
         $error = null;
 
         try {
-            $customers = $dataService->Query("SELECT * FROM Customer");
+            $customers = $dataService->Query("SELECT * FROM Customer MAXRESULTS 20");
             $this->customers = collect($customers)->map(function ($c) {
                 return [
                     'id'    => $c->Id ?? null,
@@ -90,7 +93,7 @@ class QuickBooks extends Page
                 ->title('Customers cargados correctamente')
                 ->success()
                 ->send();
-        } catch (SdkException $e) {
+        } catch (ServiceException $e) {
             // $error = $e->getMessage();
             Notification::make()
                 ->title('Error al consultar QuickBooks')
