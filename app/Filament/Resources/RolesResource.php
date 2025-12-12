@@ -46,8 +46,8 @@ class RolesResource extends Resource
             ->schema([
                 TextInput::make('name'),
                 TextInput::make('guard_name')
-                        ->default('web'),
-                        // ->disabled(),
+                        ->default('web')
+                        ->disabled(),
             ]);
     }
 
