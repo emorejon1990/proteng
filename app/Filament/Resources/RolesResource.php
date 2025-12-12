@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Builder;
 use App\Filament\Resources\RolesResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Resources\RolesResource\RelationManagers;
+use Filament\Forms\Components\Hidden;
 
 class RolesResource extends Resource
 {
@@ -44,10 +45,9 @@ class RolesResource extends Resource
         return $form
             ->schema([
                 TextInput::make('name'),
-                Select::make('guard_name')
-                        ->label('Guard Name')
-                        ->options(['web'])
-                        ->required(),
+                TextInput::make('guard_name')
+                        ->default('web'),
+                        // ->disabled(),
             ]);
     }
 
