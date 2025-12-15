@@ -3,6 +3,7 @@
 use Livewire\Volt\Volt;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\QuickBooksController;
+use App\Http\Controllers\Auth\ForcePasswordChangeController;
 
 // Route::get('/', function () {
 //     return view('welcome');
