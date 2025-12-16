@@ -86,4 +86,11 @@ return [
 
     'livewire_loading_delay' => 'default',
 
+
+    'auth' => [
+        'login' => [
+            'path' => 'login',
+        ],
+    ],
+
 ];

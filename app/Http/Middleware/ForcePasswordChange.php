@@ -16,12 +16,18 @@ class ForcePasswordChange
      */
     public function handle($request, Closure $next)
     {
-        if (
-            Auth::check() &&
-            Auth::user()->must_change_password &&
-            ! request()->is('force-password-change')
-        ) {
-            return redirect()->to('/force-password-change');
+        $user = Auth::user();
+
+        // Si no hay usuario autenticado, seguimos sin verificar
+        if (! $user) {
+            return $next($request);
         }
+
+        // Si el usuario debe cambiar la contraseña y no está en la página de cambio
+        if ($user->must_change_password && ! $request->is('customer/force-password-change')) {
+            return redirect()->route('customer.force-password-change');
+        }
+
+        return $next($request);
     }
 }

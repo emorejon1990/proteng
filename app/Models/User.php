@@ -4,6 +4,7 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Filament\Panel;
+use Filament\Facades\Filament;
 use Illuminate\Support\Str;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
@@ -75,5 +76,16 @@ class User extends Authenticatable implements FilamentUser
                 $user->assignRole($user->role);
             }
         });
+    }
+
+    public function getPanelUrl(): string
+    {
+        return match ($this->getRoleNames()->first()) {
+            'Admin' => Filament::getPanel('admin')->getUrl(),
+            'Manager' => Filament::getPanel('manager')->getUrl(),
+            'Worker' => Filament::getPanel('worker')->getUrl(),
+            'Customer' => Filament::getPanel('customer')->getUrl(),
+            default => url('/'),
+        };
     }
 }
