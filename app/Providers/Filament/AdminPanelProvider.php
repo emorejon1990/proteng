@@ -4,13 +4,15 @@ namespace App\Providers\Filament;
 
 use Filament\Pages;
 use Filament\Panel;
+use App\Models\User;
 use Filament\Widgets;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Navigation\NavigationItem;
 use App\Filament\Pages\Auth\CustomLogin;
 use Filament\Http\Middleware\Authenticate;
-use App\Filament\Resources\InventoryResource;
+use App\Filament\Shared\Resources\InventoryResource;
+use App\Http\Middleware\CheckRole;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Filament\Http\Middleware\AuthenticateSession;
@@ -35,10 +37,13 @@ class AdminPanelProvider extends PanelProvider
             // ->domain(config('app.url'))
             // ->login(CustomLogin::class)
             ->authGuard('web')
+            // ->authorize(fn ($user) => $user->hasRole === 'Admin') // <- Aquí va la autorización
             ->colors([
                 'primary' => Color::Amber,
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+            ->discoverResources(in: app_path('Filament/Admin/Resources'), for: 'App\\Filament\\Admin\\Resources')
+            ->discoverResources(in: app_path('Filament/Shared/Resources'), for: 'App\\Filament\\Shared\\Resources')
+            ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
@@ -58,6 +63,7 @@ class AdminPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                CheckRole::class,
             ])
             ->navigationItems([
                 NavigationItem::make('Inventory')

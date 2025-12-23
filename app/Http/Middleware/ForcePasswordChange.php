@@ -24,8 +24,12 @@ class ForcePasswordChange
         }
 
         // Si el usuario debe cambiar la contraseña y no está en la página de cambio
-        if ($user->must_change_password && ! $request->is('customer/force-password-change')) {
-            return redirect()->route('customer.force-password-change');
+        if (
+            $user->hasRole('Customer') &&
+            $user->must_change_password &&
+            ! $request->is('filament.*.pages.force-change-password')
+            ) {
+            return redirect()->route('filament.customer.pages.force-password-change');
         }
 
         return $next($request);

@@ -5,12 +5,13 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use Filament\Actions\Action;
 use App\Models\QuickbooksToken;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Filament\Notifications\Notification;
-use QuickBooksOnline\API\DataService\DataService;
-use QuickBooksOnline\API\Exception\SdkException;
-use QuickBooksOnline\API\Exception\ServiceException;
 use QuickBooksOnline\API\Facades\Customer;
+use QuickBooksOnline\API\Exception\SdkException;
+use QuickBooksOnline\API\DataService\DataService;
+use QuickBooksOnline\API\Exception\ServiceException;
 
 class QuickBooks extends Page
 {
@@ -22,6 +23,13 @@ class QuickBooks extends Page
     protected static string $view = 'filament.pages.quick-books';
 
     public array $customers = [];
+
+    public static function canAccess(): bool
+    {
+        $user = Auth::user();
+
+        return $user && $user->hasRole(['Admin', 'Manager']);
+    }
 
     /**
      * BOTÓN: CONECTAR QUICKBOOKS

@@ -29,12 +29,22 @@ class CustomLogin extends BaseLogin
     {
         $user = Auth::user();
 
-        return match ($user->getRoleNames()->first()) {
-            'Admin' => Filament::getPanel('admin')->getUrl(),
-            'Manager' => Filament::getPanel('manager')->getUrl(),
-            'Worker' => Filament::getPanel('worker')->getUrl(),
-            'Customer' => Filament::getPanel('customer')->getUrl(),
-            default => url('/'),
-        };
+        if ($user->hasRole('Admin')) {
+            return route('filament.admin.pages.dashboard');
+        }
+
+        if ($user->hasRole('Manager')) {
+            return route('filament.manager.pages.dashboard');
+        }
+
+        if ($user->hasRole('Worker')) {
+            return route('filament.worker.pages.dashboard');
+        }
+
+        if ($user->hasRole('Customer')) {
+            return route('filament.customer.pages.dashboard');
+        }
+
+        abort(403);
     }
 }

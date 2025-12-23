@@ -2,23 +2,26 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Http\Middleware\Authenticate;
-use Filament\Http\Middleware\AuthenticateSession;
-use Filament\Http\Middleware\DisableBladeIconComponents;
-use Filament\Http\Middleware\DispatchServingFilamentEvent;
 use Filament\Pages;
 use Filament\Panel;
-use Filament\PanelProvider;
-use Filament\Support\Colors\Color;
+use App\Models\User;
 use Filament\Widgets;
+use Filament\PanelProvider;
+use App\Http\Middleware\CheckRole;
+use Filament\Support\Colors\Color;
 use Filament\Navigation\NavigationItem;
 use App\Filament\Pages\Auth\CustomLogin;
-use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
-use Illuminate\Cookie\Middleware\EncryptCookies;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
-use Illuminate\Routing\Middleware\SubstituteBindings;
+use Filament\Http\Middleware\Authenticate;
 use Illuminate\Session\Middleware\StartSession;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Filament\Http\Middleware\AuthenticateSession;
+use App\Filament\Shared\Resources\InventoryResource;
+use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Http\Middleware\DisableBladeIconComponents;
+use Filament\Http\Middleware\DispatchServingFilamentEvent;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 
 class ManagerPanelProvider extends PanelProvider
 {
@@ -31,10 +34,13 @@ class ManagerPanelProvider extends PanelProvider
             ->brandLogo(asset('/proteng.png'))
             ->favicon(asset('/proteng.png'))
             // ->login(CustomLogin::class)
+            // ->authorize(fn ($user) => $user->hasRole === 'Manager') // <- Aquí va la autorización
             ->colors([
                 'primary' => Color::Emerald,
             ])
-            ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
+            ->discoverResources(in: app_path('Filament/Manager/Resources'), for: 'App\\Filament\\Manager\\Resources')
+            ->discoverResources(in: app_path('Filament/Shared/Resources'), for: 'App\\Filament\\Shared\\Resources')
+            ->discoverPages(in: app_path('Filament/Manager/Pages'), for: 'App\\Filament\\Manager\\Pages')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
@@ -53,10 +59,11 @@ class ManagerPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
+                CheckRole::class,
             ])
             ->navigationItems([
                 NavigationItem::make('Inventory')
-                    ->url(fn () => '/manager/inventory')
+                    ->url(fn () => InventoryResource::getUrl('dash'))
                     ->icon('heroicon-o-rectangle-group')
                     ->sort('1')
             ])
