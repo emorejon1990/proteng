@@ -17,8 +17,8 @@ class QuickBooks extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
     protected static ?string $navigationLabel = 'QuickBooks';
-    protected static ?string $title = 'Integración QuickBooks';
-    protected static ?string $navigationGroup = 'Integraciones';
+    protected static ?string $title = 'QuickBooks Integration';
+    protected static ?string $navigationGroup = 'Integrations';
 
     protected static string $view = 'filament.pages.quick-books';
 

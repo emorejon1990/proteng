@@ -23,10 +23,10 @@
                             {{-- Imagen del good --}}
                             @if($goods->picture || $goods->picture_url)
                                 <img src="{{ $goods->picture ? asset('storage/' . $goods->picture) : $goods->picture_url }}"
-                                     alt="{{ $goods->name }}" style="height: 2.5rem; width: 2.5rem;"
-                                     class="w-2.5 h-2.5 object-cover rounded-md border">
+                                     alt="{{ $goods->name }}" style="height: 7rem; width: 7rem;"
+                                     class="w-7 h-7 object-cover rounded-md border">
                             @else
-                                <div class="w-2.5 h-2.5 bg-gray-200 rounded-md flex items-center justify-center text-gray-400">
+                                <div class="w-7 h-7 bg-gray-200 rounded-md flex items-center justify-center text-gray-400">
                                     N/A
                                 </div>
                             @endif
@@ -76,7 +76,7 @@
             <style>
                 .prose img {
                     width: auto;      /* No se salga del contenedor */
-                    max-height: 120px;         /* Mantiene proporción */
+                    max-height: 600px;         /* Mantiene proporción */
                     display: block;
                     margin-top: 0px;
                     margin-bottom: 0px;
@@ -84,6 +84,7 @@
                 }
                 .attachment-gallery {
                     display: flex;
+                    flex-direction: column;
                 }
             </style>
 
