@@ -44,8 +44,8 @@ class InvoiceResource extends Resource
     {
         return $table
             ->columns([
-                TextColumn::make('customer_id')
-                ->relationship('customer', 'display_name'),
+                TextColumn::make('customer.display_name')
+                    ->label('Customer'),
             ])
             ->filters([
                 //
