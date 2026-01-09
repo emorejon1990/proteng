@@ -84,6 +84,11 @@ class InvoiceResource extends Resource
             ->defaultSort('issued_at', 'desc')
             ->actions([
                 Tables\Actions\ViewAction::make(),
+
+                Tables\Actions\Action::make('pdf')
+                ->label('Download PDF')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->url(fn (\App\Models\Invoice $record) => route('invoices.pdf', $record), shouldOpenInNewTab: true),
             ])
             ->bulkActions([]);
     }

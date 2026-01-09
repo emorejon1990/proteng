@@ -2,10 +2,11 @@
 
 use Livewire\Volt\Volt;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\QuickBooksController;
-use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Middleware\RedirectByRole;
 use App\Filament\Pages\Auth\CustomLogin;
+use App\Http\Controllers\QuickBooksController;
+use App\Http\Controllers\QuickBooksInvoicePdfController;
+use App\Http\Controllers\Auth\ForcePasswordChangeController;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -44,4 +45,9 @@ Route::middleware(['quickbooks'])->group(function () {
     Route::get('/quickbooks/customers', [QuickBooksController::class, 'customers']);
     Route::get('/quickbooks/invoices', [QuickBooksController::class, 'invoices']);
 
+});
+
+Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/invoices/{invoice}/pdf', QuickBooksInvoicePdfController::class)
+        ->name('invoices.pdf');
 });
