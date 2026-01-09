@@ -8,10 +8,11 @@ use App\Models\Customer;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Manager\Resources\CustomerResource\Pages;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Manager\Resources\CustomerResource\Pages;
 use App\Filament\Manager\Resources\CustomerResource\RelationManagers;
 
 class CustomerResource extends Resource
@@ -24,7 +25,7 @@ class CustomerResource extends Resource
     {
         return $form
             ->schema([
-                TextInput::make('name')->required(),
+                TextInput::make('display_name')->required(),
                 TextInput::make('email')->email(),
                 TextInput::make('phone'),
             ]);
@@ -34,7 +35,9 @@ class CustomerResource extends Resource
     {
         return $table
             ->columns([
-                //
+                TextColumn::make('display_name'),
+                TextColumn::make('email'),
+                TextColumn::make('phone'),
             ])
             ->filters([
                 //

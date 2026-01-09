@@ -27,7 +27,7 @@ class InvoiceResource extends Resource
         return $form
         ->schema([
             Select::make('customer_id')
-                ->relationship('customer', 'name')
+                ->relationship('customer', 'display_name')
                 ->required(),
 
             Repeater::make('items')
