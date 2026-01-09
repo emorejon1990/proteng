@@ -16,7 +16,13 @@ class ForcePasswordChange
      */
     public function handle($request, Closure $next)
     {
+        // ✅ NO bloquear Livewire
         if ($request->is('livewire/*') || $request->routeIs('livewire.update') || $request->hasHeader('X-Livewire')) {
+            return $next($request);
+        }
+
+        // ✅ NO bloquear el login
+        if ($request->routeIs('filament.auth.auth.login') || $request->routeIs('login')) {
             return $next($request);
         }
 
