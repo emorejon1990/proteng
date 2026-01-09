@@ -15,7 +15,7 @@ class QuickBooksSync extends Page
     protected static ?string $navigationLabel = 'QuickBooks Sync';
     protected static ?string $navigationGroup = 'QuickBooks';
 
-    protected static string $view = 'filament.admin.pages.quickbooks-sync';
+    protected static string $view = 'filament.admin.pages.quick-books-sync';
 
     public static function canAccess(): bool
     {
