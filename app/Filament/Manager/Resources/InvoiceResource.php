@@ -10,6 +10,7 @@ use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Repeater;
+use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
@@ -43,7 +44,8 @@ class InvoiceResource extends Resource
     {
         return $table
             ->columns([
-                //
+                TextColumn::make('customer_id')
+                ->relationship('customer', 'display_name'),
             ])
             ->filters([
                 //

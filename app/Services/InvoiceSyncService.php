@@ -53,9 +53,11 @@ class InvoiceSyncService
         $invoices = $ds->Query("SELECT * FROM Invoice");
 
         foreach ($invoices as $qbInvoice) {
+            $customerRef = $qbInvoice->CustomerRef->value ?? null;
+
             $customer = Customer::where(
                 'quickbooks_id',
-                $qbInvoice->CustomerRef ?? null
+                $customerRef
             )->first();
 
             if (! $customer) continue;
