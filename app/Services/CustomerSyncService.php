@@ -82,5 +82,10 @@ class CustomerSyncService
         if (! $user->hasRole('Customer')) {
             $user->assignRole('Customer');
         }
+
+        if ($customer->user_id !== $user->id) {
+            $customer->user_id = $user->id;
+            $customer->save();
+        }
     }
 }
