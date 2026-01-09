@@ -15,7 +15,9 @@ class WarrantyExpiringTable extends BaseWidget
     protected function getTableQuery(): Builder
     {
         $customer = Auth::user()?->customer;
-        abort_if(! $customer, 403);
+        if (! $customer) {
+            return InstalledProduct::query()->whereKey(0);
+        }
 
         return InstalledProduct::query()
             ->where('customer_id', $customer->id)

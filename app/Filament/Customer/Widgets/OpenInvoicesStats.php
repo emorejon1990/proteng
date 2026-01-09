@@ -12,7 +12,12 @@ class OpenInvoicesStats extends StatsOverviewWidget
     protected function getStats(): array
     {
         $customer = Auth::user()?->customer;
-        abort_if(! $customer, 403);
+        if (! $customer) {
+            return [
+                Stat::make('Open Invoices', 0),
+                Stat::make('Open Balance', number_format(0, 2)),
+            ];
+        }
 
         $openCount = Invoice::query()
             ->where('customer_id', $customer->id)

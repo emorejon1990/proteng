@@ -12,7 +12,12 @@ class WarrantyExpiringStats extends StatsOverviewWidget
     protected function getStats(): array
     {
         $customer = Auth::user()?->customer;
-        abort_if(! $customer, 403);
+        if (! $customer) {
+            return [
+                Stat::make('Expiring in 30 days', 0),
+                Stat::make('Active Warranties', 0),
+            ];
+        }
 
         $days = 30;
 
