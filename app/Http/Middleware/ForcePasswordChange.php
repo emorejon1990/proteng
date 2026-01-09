@@ -9,36 +9,41 @@ use Symfony\Component\HttpFoundation\Response;
 
 class ForcePasswordChange
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
-     */
-    public function handle($request, Closure $next)
+    public function handle(Request $request, Closure $next): Response
     {
-        // ✅ NO bloquear Livewire
+        // ✅ 1) No tocar endpoints internos de Livewire
         if ($request->is('livewire/*') || $request->routeIs('livewire.update') || $request->hasHeader('X-Livewire')) {
             return $next($request);
         }
 
-        // ✅ NO bloquear el login
+        // ✅ 2) No bloquear login / logout (importante para evitar loops)
         if ($request->routeIs('filament.auth.auth.login') || $request->routeIs('login')) {
+            return $next($request);
+        }
+
+        if ($request->routeIs('filament.auth.auth.logout') || $request->routeIs('logout')) {
             return $next($request);
         }
 
         $user = Auth::user();
 
-        // Si no hay usuario autenticado, seguimos sin verificar
+        // Si no hay usuario autenticado, no hacemos nada
         if (! $user) {
             return $next($request);
         }
 
-        // Si el usuario debe cambiar la contraseña y no está en la página de cambio
-        if (
-            $user->hasRole('Customer') &&
-            $user->must_change_password &&
-            ! $request->routeIs('filament.customer.pages.force-password-change')
-            ) {
+        // ✅ 3) Solo aplica a Customers
+        if (! $user->hasRole('Customer')) {
+            return $next($request);
+        }
+
+        // ✅ 4) Si ya está en la página de cambio, dejarlo pasar
+        if ($request->routeIs('filament.customer.pages.force-password-change')) {
+            return $next($request);
+        }
+
+        // ✅ 5) Si debe cambiar, redirige
+        if ((bool) ($user->must_change_password ?? false) === true) {
             return redirect()->route('filament.customer.pages.force-password-change');
         }
 
