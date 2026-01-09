@@ -16,6 +16,10 @@ class ForcePasswordChange
      */
     public function handle($request, Closure $next)
     {
+        if ($request->is('livewire/*') || $request->routeIs('livewire.update') || $request->hasHeader('X-Livewire')) {
+            return $next($request);
+        }
+
         $user = Auth::user();
 
         // Si no hay usuario autenticado, seguimos sin verificar
