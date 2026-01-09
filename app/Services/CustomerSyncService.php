@@ -73,7 +73,7 @@ class CustomerSyncService
         $user = User::firstOrCreate(
             ['email' => $customer->email],
             [
-                'display_name'                 => $customer->name,
+                'name'                 => $customer->display_name,
                 'password'             => Hash::make('Abc12345678*'),
                 'must_change_password' => true,
             ]
