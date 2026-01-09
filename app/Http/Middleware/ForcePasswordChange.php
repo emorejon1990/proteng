@@ -37,7 +37,7 @@ class ForcePasswordChange
         if (
             $user->hasRole('Customer') &&
             $user->must_change_password &&
-            ! $request->is('filament.*.pages.force-change-password')
+            ! $request->routeIs('filament.customer.pages.force-password-change')
             ) {
             return redirect()->route('filament.customer.pages.force-password-change');
         }
