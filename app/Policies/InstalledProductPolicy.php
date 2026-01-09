@@ -13,7 +13,7 @@ class InstalledProductPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['Manager']);
+        return $user->hasRole(['Manager', 'Customer']);
     }
 
     /**
