@@ -2,17 +2,19 @@
 
 namespace App\Filament\Manager\Resources\CustomerResource\Pages;
 
-use App\Filament\Manager\Resources\CustomerResource;
 use Filament\Actions;
-use Filament\Resources\Pages\CreateRecord;
+use App\Models\Customer;
 use Illuminate\Database\Eloquent\Model;
+use Filament\Resources\Pages\CreateRecord;
+use App\Services\Customers\CustomerSyncService;
+use App\Filament\Manager\Resources\CustomerResource;
 
 class CreateCustomer extends CreateRecord
 {
     protected static string $resource = CustomerResource::class;
 
-    protected function handleRecordCreation(array $data): Model
+    protected function handleRecordCreation(array $data): Customer
     {
-        return app(\App\Services\QuickBooksService::class)->createCustomer($data);
+        return app(CustomerSyncService::class)->create($data);
     }
 }

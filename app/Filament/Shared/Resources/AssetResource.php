@@ -1,19 +1,20 @@
 <?php
 
-namespace App\Filament\Admin\Resources;
+namespace App\Filament\Shared\Resources;
 
-use App\Filament\Admin\Resources\AssetResource\Pages;
-use App\Filament\Admin\Resources\AssetResource\RelationManagers;
-use App\Models\Asset;
 use Filament\Forms;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Form;
-use Filament\Resources\Resource;
 use Filament\Tables;
-use Filament\Tables\Columns\TextColumn;
+use App\Models\Asset;
+use Filament\Forms\Form;
 use Filament\Tables\Table;
+use Filament\Resources\Resource;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\RichEditor;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Shared\Resources\AssetResource\Pages;
+use App\Filament\Shared\Resources\AssetResource\RelationManagers;
 
 class AssetResource extends Resource
 {
@@ -32,6 +33,7 @@ class AssetResource extends Resource
                 TextInput::make('name'),
                 TextInput::make('weight'),
                 TextInput::make('weight_tolerance'),
+                RichEditor::make('description'),
             ]);
     }
 
@@ -42,6 +44,7 @@ class AssetResource extends Resource
                 TextColumn::make('name'),
                 TextColumn::make('weight'),
                 TextColumn::make('weight_tolerance'),
+                TextColumn::make('description')->html()->limit(50, end: ' (more)'),
             ])
             ->filters([
                 //

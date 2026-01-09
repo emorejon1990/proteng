@@ -3,23 +3,36 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Customer extends Model
 {
     protected $fillable = [
+        'user_id',
         'quickbooks_id',
-        'name',
+        'display_name',
         'email',
         'phone',
+        'active',
     ];
 
-    public function invoices()
+    /* =====================
+     |  RELATIONS
+     |=====================*/
+
+    public function user(): BelongsTo
     {
-        return $this->hasMany(Invoice::class);
+        return $this->belongsTo(User::class);
     }
 
-    public function user()
+    public function installedProducts(): HasMany
     {
-        return $this->hasOne(User::class);
+        return $this->hasMany(InstalledProduct::class);
+    }
+
+    public function invoices(): HasMany
+    {
+        return $this->hasMany(Invoice::class);
     }
 }

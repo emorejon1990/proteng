@@ -88,4 +88,9 @@ class User extends Authenticatable implements FilamentUser
             default => url('/'),
         };
     }
+
+    public function customer()
+    {
+        return $this->hasOne(Customer::class);
+    }
 }
