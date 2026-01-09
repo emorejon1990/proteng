@@ -31,6 +31,8 @@ return new class extends Migration
             $table->date('warranty_expires_at')->nullable();
 
             $table->timestamps();
+
+            $table->index(['customer_id', 'warranty_expires_at']);
         });
     }
 

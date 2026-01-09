@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Builder;
 
 trait ScopesByCustomer
 {
-    protected static function getEloquentQuery(): Builder
+    public static function getEloquentQuery(): Builder
     {
         $query = parent::getEloquentQuery();
 

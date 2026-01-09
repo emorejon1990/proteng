@@ -4,9 +4,10 @@ namespace App\Filament\Customer\Resources;
 
 use Filament\Forms;
 use Filament\Tables;
-use Filament\Resources\Resource;
-use Illuminate\Database\Eloquent\Model;
 use App\Models\InstalledProduct;
+use Filament\Resources\Resource;
+use Filament\Tables\Columns\TextColumn;
+use Illuminate\Database\Eloquent\Model;
 use App\Filament\Customer\Concerns\ScopesByCustomer;
 use App\Filament\Customer\Resources\InstalledProductResource\Pages;
 
@@ -66,43 +67,40 @@ class InstalledProductResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('product.name')
+                TextColumn::make('product.name')
                     ->label('Product')
                     ->searchable()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('serial_number')
+                TextColumn::make('serial_number')
                     ->label('Serial')
                     ->searchable(),
 
-                Tables\Columns\TextColumn::make('installed_at')
+                TextColumn::make('installed_at')
                     ->label('Installed')
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('warranty_expires_at')
+                TextColumn::make('warranty_expires_at')
                     ->label('Warranty Expires')
                     ->date()
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('warranty_remaining')
+                TextColumn::make('warranty_remaining')
                     ->label('Remaining')
-                    ->getStateUsing(function (InstalledProduct $record) {
-                        if (! $record->warranty_expires_at) {
-                            return 'N/A';
-                        }
-
-                        if (now()->greaterThan($record->warranty_expires_at)) {
-                            return 'Expired';
-                        }
-
-                        return now()->diffForHumans($record->warranty_expires_at, true);
-                    })
-                    ->badge(),
+                    ->state(fn ($record) => $record->warrantyRemainingHuman())
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => $state ?? '—')
+                    ->color(fn ($record) => match ($record->warrantyStatus()) {
+                        'active' => 'success',
+                        'expiring' => 'warning',
+                        'expired' => 'danger',
+                        default => 'gray',
+                    }),
             ])
             ->defaultSort('warranty_expires_at', 'asc')
             ->actions([
-                Tables\Actions\ViewAction::make(),
+                //
             ])
             ->bulkActions([]); // ✅ customer no bulk actions
     }

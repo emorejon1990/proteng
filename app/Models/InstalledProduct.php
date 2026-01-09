@@ -21,9 +21,18 @@ class InstalledProduct extends Model
         'warranty_expires_at' => 'date',
     ];
 
-    /* =====================
-     |  RELATIONS
-     |=====================*/
+    protected static function booted(): void
+    {
+        static::saving(function (self $installedProduct) {
+            // Si hay installed_at, calcula warranty_expires_at
+            if ($installedProduct->installed_at) {
+                $months = (int) ($installedProduct->warranty_months ?: 0);
+
+                $installedProduct->warranty_expires_at =
+                    $installedProduct->installed_at->copy()->addMonths($months);
+            }
+        });
+    }
 
     public function customer(): BelongsTo
     {
@@ -35,20 +44,45 @@ class InstalledProduct extends Model
         return $this->belongsTo(Products::class);
     }
 
-    /* =====================
-     |  ACCESSORS
-     |=====================*/
+    public function isWarrantyExpired(): bool
+    {
+        return $this->warranty_expires_at
+            ? now()->startOfDay()->gt($this->warranty_expires_at->startOfDay())
+            : false;
+    }
 
-    public function getWarrantyRemainingAttribute(): string
+    public function warrantyRemainingHuman(): ?string
     {
         if (! $this->warranty_expires_at) {
-            return 'N/A';
+            return null;
         }
 
-        if (now()->greaterThan($this->warranty_expires_at)) {
+        if ($this->isWarrantyExpired()) {
             return 'Expired';
         }
 
-        return now()->diffForHumans($this->warranty_expires_at, true);
+        return now()->diffForHumans($this->warranty_expires_at, [
+            'parts' => 2,
+            'short' => true,
+            'syntax' => \Carbon\CarbonInterface::DIFF_ABSOLUTE,
+        ]);
+    }
+
+    public function warrantyStatus(): string
+    {
+        if (! $this->warranty_expires_at) {
+            return 'unknown';
+        }
+
+        if ($this->isWarrantyExpired()) {
+            return 'expired';
+        }
+
+        // Vence en <= 30 días
+        if (now()->diffInDays($this->warranty_expires_at, false) <= 30) {
+            return 'expiring';
+        }
+
+        return 'active';
     }
 }
