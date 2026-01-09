@@ -65,7 +65,7 @@ class CustomerPanelProvider extends PanelProvider
             ->navigationItems([
                 NavigationItem::make('My Invoices')
                     ->url(fn () => InventoryResource::getUrl('dash'))
-                    ->icon('heroicon-o-clipboard-list')
+                    ->icon('heroicon-o-rectangle-group')
                     ->sort('1')
             ])
             ->authMiddleware([
