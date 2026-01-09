@@ -13,7 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         // AddSecurityHeaders::class;
-        $middleware->append(\App\Http\Middleware\ForcePasswordChange::class);
+        // $middleware->append(\App\Http\Middleware\ForcePasswordChange::class);
         $middleware->alias([
             'quickbooks' => \App\Http\Middleware\EnsureQuickBooksTokenIsValid::class,
         ]);
