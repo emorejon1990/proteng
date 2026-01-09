@@ -30,7 +30,7 @@ class CustomerSyncService
         $customer = Customer::updateOrCreate(
             ['quickbooks_id' => $qbCustomer->Id],
             [
-                'name'  => $qbCustomer->DisplayName ?? $qbCustomer->GivenName ?? 'Cliente',
+                'display_name'  => $qbCustomer->DisplayName ?? $qbCustomer->GivenName ?? 'Cliente',
                 'email' => $qbCustomer->PrimaryEmailAddr->Address ?? null,
                 'phone' => $qbCustomer->PrimaryPhone->FreeFormNumber ?? null,
             ]
@@ -52,7 +52,7 @@ class CustomerSyncService
             $customer = Customer::updateOrCreate(
                 ['quickbooks_id' => $qbCustomer->Id],
                 [
-                    'name'  => $qbCustomer->DisplayName,
+                    'display_name'  => $qbCustomer->DisplayName,
                     'email' => $qbCustomer->PrimaryEmailAddr->Address ?? null,
                     'phone' => $qbCustomer->PrimaryPhone->FreeFormNumber ?? null,
                 ]
@@ -73,7 +73,7 @@ class CustomerSyncService
         $user = User::firstOrCreate(
             ['email' => $customer->email],
             [
-                'name'                 => $customer->name,
+                'display_name'                 => $customer->name,
                 'password'             => Hash::make('Abc12345678*'),
                 'must_change_password' => true,
             ]
