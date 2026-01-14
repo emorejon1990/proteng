@@ -20,7 +20,7 @@ class AssetPolicy
      */
     public function view(User $user, Asset $asset): bool
     {
-        return true;
+        return $user->hasRole(['Admin','Manager']);
     }
 
     /**
@@ -28,7 +28,7 @@ class AssetPolicy
      */
     public function create(User $user): bool
     {
-        return true;
+        return $user->hasRole(['Admin','Manager']);
     }
 
     /**
@@ -36,7 +36,7 @@ class AssetPolicy
      */
     public function update(User $user, Asset $asset): bool
     {
-        return true;
+        return $user->hasRole(['Admin','Manager']);
     }
 
     /**
@@ -52,7 +52,7 @@ class AssetPolicy
      */
     public function restore(User $user, Asset $asset): bool
     {
-        return true;
+        return $user->hasRole(['Admin','Manager']);
     }
 
     /**

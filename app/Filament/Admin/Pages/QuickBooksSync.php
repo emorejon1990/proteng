@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Pages;
 
 use Filament\Pages\Page;
 use Filament\Actions\Action;
+use App\Services\AssetSyncService;
 use App\Services\InvoiceSyncService;
 use Illuminate\Support\Facades\Auth;
 use App\Services\CustomerSyncService;
@@ -49,14 +50,26 @@ class QuickBooksSync extends Page
                         ->send();
                 }),
 
+            Action::make('syncProducts')
+                ->label('Sync Products')
+                ->action(function () {
+                    app(AssetSyncService::class)->sync();
+
+                    Notification::make()
+                        ->title('Products synced successfully')
+                        ->success()
+                        ->send();
+                }),
+
             Action::make('syncAll')
                 ->label('Sync ALL')
                 ->action(function () {
                     app(CustomerSyncService::class)->sync();
                     app(InvoiceSyncService::class)->sync();
+                    app(AssetSyncService::class)->sync();
 
                     Notification::make()
-                        ->title('Customers + Invoices synced successfully')
+                        ->title('Customers + Invoices + Products synced successfully')
                         ->success()
                         ->send();
                 }),

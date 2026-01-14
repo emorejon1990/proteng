@@ -9,6 +9,7 @@ use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use Filament\Tables\Columns\TextColumn;
+use Illuminate\Database\Eloquent\Model;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\RichEditor;
 use Illuminate\Database\Eloquent\Builder;
@@ -49,6 +50,9 @@ class AssetResource extends Resource
             ->filters([
                 //
             ])
+            ->recordUrl(
+                fn (Model $record): string => route('filament.admin.resources.assets.view', ['record' => $record]),
+                )
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])
@@ -72,6 +76,7 @@ class AssetResource extends Resource
             'index' => Pages\ListAssets::route('/'),
             'create' => Pages\CreateAsset::route('/create'),
             'edit' => Pages\EditAsset::route('/{record}/edit'),
+            'view' => Pages\ViewAsset::route('/{record}'),
         ];
     }
 }
