@@ -12,6 +12,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Repeater;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Forms\Components\TextInput;
+use App\Models\Asset;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Manager\Resources\InvoiceResource\Pages;
@@ -31,8 +32,13 @@ class InvoiceResource extends Resource
                 ->relationship('customer', 'display_name')
                 ->required(),
 
-            Repeater::make('items')
+            Repeater::make('metadata.items')
                 ->schema([
+                    Select::make('asset_id')
+                        ->label('Asset')
+                        ->options(fn () => Asset::query()->orderBy('name')->pluck('name', 'id'))
+                        ->searchable()
+                        ->required(),
                     TextInput::make('qty')->numeric()->required(),
                     TextInput::make('price')->numeric()->required(),
                 ])

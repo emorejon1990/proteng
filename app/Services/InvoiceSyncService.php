@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Asset;
 use App\Models\Customer;
 use App\Models\Invoice;
 use App\Services\QuickBooksService;
@@ -19,16 +20,33 @@ class InvoiceSyncService
     {
         $ds = $this->qb->ds();
 
+        $lines = collect($items)
+            ->map(function ($item) {
+                $asset = Asset::find($item['asset_id'] ?? null);
+
+                if (! $asset || ! $asset->quickbooks_id) {
+                    throw new \RuntimeException('Cada item debe tener un asset con quickbooks_id.');
+                }
+
+                return [
+                    'Amount' => $item['qty'] * $item['price'],
+                    'DetailType' => 'SalesItemLineDetail',
+                    'SalesItemLineDetail' => [
+                        'ItemRef' => [
+                            'value' => $asset->quickbooks_id,
+                            'name' => $asset->name,
+                        ],
+                        'Qty' => $item['qty'],
+                        'UnitPrice' => $item['price'],
+                    ],
+                ];
+            })
+            ->values()
+            ->toArray();
+
         $qbInvoice = $ds->Add(QBInvoice::create([
             'CustomerRef' => ['value' => $customer->quickbooks_id],
-            'Line' => collect($items)->map(fn ($item) => [
-                'Amount' => $item['qty'] * $item['price'],
-                'DetailType' => 'SalesItemLineDetail',
-                'SalesItemLineDetail' => [
-                    'Qty'        => $item['qty'],
-                    'UnitPrice' => $item['price'],
-                ],
-            ])->toArray(),
+            'Line' => $lines,
         ]));
 
         return Invoice::updateOrCreate(
@@ -41,6 +59,7 @@ class InvoiceSyncService
                 'status'         => ($qbInvoice->Balance ?? 0) > 0 ? 'open' : 'paid',
                 'issued_at'      => $qbInvoice->TxnDate ?? null,
                 'due_at'         => $qbInvoice->DueDate ?? null,
+                'metadata'       => ['items' => $items],
             ]
         );
     }

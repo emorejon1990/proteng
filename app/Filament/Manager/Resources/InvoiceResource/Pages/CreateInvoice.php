@@ -6,7 +6,7 @@ use Filament\Actions;
 use App\Models\Invoice;
 use App\Models\Customer;
 use Filament\Resources\Pages\CreateRecord;
-use App\Services\Invoices\InvoiceSyncService;
+use App\Services\InvoiceSyncService;
 use App\Filament\Manager\Resources\InvoiceResource;
 
 class CreateInvoice extends CreateRecord
@@ -16,8 +16,9 @@ class CreateInvoice extends CreateRecord
     protected function handleRecordCreation(array $data): Invoice
     {
         $customer = Customer::findOrFail($data['customer_id']);
+        $items = $data['metadata']['items'] ?? [];
 
         return app(InvoiceSyncService::class)
-            ->create($customer, $data['items']);
+            ->create($customer, $items);
     }
 }
