@@ -23,6 +23,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\SelectColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use App\Filament\Manager\Resources\InvoiceResource;
 use App\Filament\Shared\Resources\WorkOrderResource\Pages;
 use App\Filament\Shared\Resources\WorkOrderResource\RelationManagers;
 use App\Filament\Shared\Resources\WorkOrderResource\RelationManagers\DistributionsRelationManager;
@@ -65,6 +66,14 @@ class WorkOrderResource extends Resource
                         ->live()
                         ->preload()
                         ->required(),
+
+                    Select::make('customer_id')
+                        ->label('Customer')
+                        ->relationship('customer', 'display_name')
+                        ->searchable()
+                        ->preload()
+                        ->required(fn (Get $get): bool => $get('type_id') == 2)
+                        ->visible(fn (Get $get): bool => $get('type_id') == 2),
 
                     Select::make('asset_id')
                         ->visible(fn (Get $get): bool => $get('type_id') != 2)
@@ -126,6 +135,29 @@ class WorkOrderResource extends Resource
                 Tables\Actions\EditAction::make()
                     ->visible(function ($record): bool {
                     return $record->status_id == 1;}),
+                Action::make('createInvoice')
+                    ->label('Create Invoice')
+                    ->icon('heroicon-o-document-plus')
+                    ->url(function ($record): string {
+                        $items = $record->workOrderAssets
+                            ->map(fn ($item) => [
+                                'asset_id' => $item->asset_id,
+                                'qty' => $item->quantity,
+                                'price' => 0,
+                            ])
+                            ->values()
+                            ->toArray();
+
+                        return InvoiceResource::getUrl('create', [
+                            'customer_id' => $record->customer_id,
+                            'items' => $items,
+                        ]);
+                    })
+                    ->visible(function ($record): bool {
+                        return $record->type_id == 2
+                            && $record->status_id == 6
+                            && $record->customer_id;
+                    }),
                     Action::make('start')
                         ->icon('heroicon-s-play')
                         ->color('success')

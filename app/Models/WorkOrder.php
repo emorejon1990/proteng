@@ -17,6 +17,11 @@ class WorkOrder extends Model
         return $this->belongsTo(Asset::class, 'asset_id');
     }
 
+    public function customer(): BelongsTo
+    {
+        return $this->belongsTo(Customer::class, 'customer_id');
+    }
+
     public function getAssetNameAttribute(): ?string
     {
         return optional(Asset::find($this->asset_id))->name;
