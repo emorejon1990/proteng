@@ -23,6 +23,7 @@ use Filament\Forms\Components\DatePicker;
 use Filament\Tables\Columns\SelectColumn;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\SoftDeletingScope;
+use Filament\Facades\Filament;
 use App\Filament\Manager\Resources\InvoiceResource;
 use App\Filament\Shared\Resources\WorkOrderResource\Pages;
 use App\Filament\Shared\Resources\WorkOrderResource\RelationManagers;
@@ -156,7 +157,9 @@ class WorkOrderResource extends Resource
                     ->visible(function ($record): bool {
                         return $record->type_id == 2
                             && $record->status_id == 6
-                            && $record->customer_id;
+                            && $record->customer_id
+                            && Filament::getCurrentPanel()?->getId() === 'manager'
+                            && Auth::user()?->hasRole(['Manager']);
                     }),
                     Action::make('start')
                         ->icon('heroicon-s-play')
