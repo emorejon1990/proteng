@@ -17,7 +17,7 @@
                     class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
                     @click.self="open = false"
                 >
-                    <div class="bg-white rounded shadow-lg max-w-2xl w-full p-6">
+                    <div class="bg-white rounded shadow-lg max-w-2xl w-full p-6 max-h-[80vh] overflow-y-auto">
                         <div class="flex items-start justify-between mb-4">
                             <h3 class="text-lg font-semibold">
                                 {{ $order->asset_name }}
