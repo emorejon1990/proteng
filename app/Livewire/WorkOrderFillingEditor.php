@@ -7,7 +7,6 @@ use Livewire\Component;
 use App\Models\Products;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ProductsController;
 
 class WorkOrderFillingEditor extends Component

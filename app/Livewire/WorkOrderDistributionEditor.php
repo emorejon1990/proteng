@@ -96,12 +96,36 @@ class WorkOrderDistributionEditor extends Component
             session()->flash('error', 'Debes seleccionar todos los productos.');
             return;
         }else {
+            $this->moveDistributionProducts();
             $this->workOrder->status_id = 6;
             $this->workOrder->save();
             session()->flash('done', 'Distribution Ready');
             return redirect(request()->header('Referer'));
         }
 
+    }
+
+    private function moveDistributionProducts(): void
+    {
+        $items = $this->workOrder->distributions()->withPivot('quantity')->get();
+
+        foreach ($items as $item) {
+            $quantity = (int) $item->pivot->quantity;
+
+            if ($quantity <= 0) {
+                continue;
+            }
+
+            $productIds = Products::where('asset_id', $item->id)
+                ->where('location_id', 4)
+                ->orderBy('id')
+                ->limit($quantity)
+                ->pluck('id');
+
+            if ($productIds->isNotEmpty()) {
+                Products::whereIn('id', $productIds)->update(['location_id' => 6]);
+            }
+        }
     }
 
     public function CreateWO($assetId, $neededQuantity)

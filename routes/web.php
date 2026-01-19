@@ -31,7 +31,7 @@ Route::get('/login', CustomLogin::class)->middleware('guest')->name('login');
 // Redirección después de login según rol
 Route::get('/', fn() => redirect('/'))->middleware(RedirectByRole::class);
 
-Route::put('/product/{product}', [\App\Http\Controllers\ProductController::class, 'update'])->name('product.update');
+Route::put('/product/{product}', [\App\Http\Controllers\ProductsController::class, 'update'])->name('product.update');
 
 Route::get('/offline', function () {
     return view('vendor/laravelpwa/offline');
