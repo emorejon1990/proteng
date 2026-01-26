@@ -7,6 +7,7 @@ use Filament\Panel;
 use App\Models\User;
 use Filament\Widgets;
 use Filament\PanelProvider;
+use Filament\Enums\ThemeMode;
 use App\Http\Middleware\CheckRole;
 use Filament\Support\Colors\Color;
 use Filament\Navigation\NavigationItem;
@@ -68,6 +69,8 @@ class WorkerPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->defaultThemeMode(ThemeMode::Light)
+            ->darkMode(false);
     }
 }

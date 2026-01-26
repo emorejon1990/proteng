@@ -7,15 +7,16 @@ use Filament\Panel;
 use App\Models\User;
 use Filament\Widgets;
 use Filament\PanelProvider;
+use Filament\Enums\ThemeMode;
+use App\Http\Middleware\CheckRole;
 use Filament\Support\Colors\Color;
 use Filament\Navigation\NavigationItem;
 use App\Filament\Pages\Auth\CustomLogin;
 use Filament\Http\Middleware\Authenticate;
-use App\Filament\Shared\Resources\InventoryResource;
-use App\Http\Middleware\CheckRole;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Filament\Http\Middleware\AuthenticateSession;
+use App\Filament\Shared\Resources\InventoryResource;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
@@ -73,6 +74,8 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->defaultThemeMode(ThemeMode::Light)
+            ->darkMode(false);
     }
 }

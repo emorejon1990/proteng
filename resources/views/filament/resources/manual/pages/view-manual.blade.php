@@ -86,6 +86,18 @@
                     display: flex;
                     flex-direction: column;
                 }
+                .prose .embed-video {
+                    position: relative;
+                    padding-bottom: 56.25%;
+                    height: 0;
+                    overflow: hidden;
+                }
+                .prose .embed-video iframe {
+                    position: absolute;
+                    inset: 0;
+                    width: 100%;
+                    height: 100%;
+                }
             </style>
 
             {!! $manual->descript !!}

@@ -6,6 +6,7 @@ use Filament\Pages;
 use Filament\Panel;
 use Filament\Widgets;
 use Filament\PanelProvider;
+use Filament\Enums\ThemeMode;
 use Filament\Support\Colors\Color;
 use App\Filament\Pages\Auth\CustomLogin;
 use Filament\Http\Middleware\Authenticate;
@@ -44,6 +45,8 @@ class AuthPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->defaultThemeMode(ThemeMode::Light)
+            ->darkMode(false);
     }
 }
