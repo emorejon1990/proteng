@@ -68,7 +68,7 @@ class WorkOrderResource extends Resource
                         ->preload()
                         ->required(),
 
-                    Select::make('customer_id')
+                    Select::make('customer_quickbooks_id')
                         ->label('Customer')
                         ->relationship('customer', 'display_name')
                         ->searchable()
@@ -150,14 +150,14 @@ class WorkOrderResource extends Resource
                             ->toArray();
 
                         return InvoiceResource::getUrl('create', [
-                            'customer_id' => $record->customer_id,
+                            'customer_id' => $record->customer?->id,
                             'items' => $items,
                         ]);
                     })
                     ->visible(function ($record): bool {
                         return $record->type_id == 2
                             && $record->status_id == 6
-                            && $record->customer_id
+                            && $record->customer?->id
                             && Filament::getCurrentPanel()?->getId() === 'manager'
                             && Auth::user()?->hasRole(['Manager']);
                     }),

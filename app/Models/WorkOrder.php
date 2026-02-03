@@ -19,7 +19,7 @@ class WorkOrder extends Model
 
     public function customer(): BelongsTo
     {
-        return $this->belongsTo(Customer::class, 'customer_id');
+        return $this->belongsTo(Customer::class, 'customer_quickbooks_id', 'quickbooks_id');
     }
 
     public function getAssetNameAttribute(): ?string
