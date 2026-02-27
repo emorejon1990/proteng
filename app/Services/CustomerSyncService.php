@@ -4,7 +4,9 @@ namespace App\Services;
 
 use App\Models\Customer;
 use App\Models\User;
+use App\Mail\CustomerAccountCreated;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use QuickBooksOnline\API\Facades\Customer as QBCustomer;
 use App\Services\QuickBooksService;
@@ -68,16 +70,20 @@ class CustomerSyncService
     {
         if (! $customer->email) return;
 
-        $password = Str::random(12);
+        $password = 'Abc12345678*';
 
         $user = User::firstOrCreate(
             ['email' => $customer->email],
             [
                 'name'                 => $customer->display_name,
-                'password'             => Hash::make('Abc12345678*'),
+                'password'             => Hash::make($password),
                 'must_change_password' => true,
             ]
         );
+
+        if ($user->wasRecentlyCreated) {
+            Mail::to($customer->email)->send(new CustomerAccountCreated($user, $password));
+        }
 
         if (! $user->hasRole('Customer')) {
             $user->assignRole('Customer');
