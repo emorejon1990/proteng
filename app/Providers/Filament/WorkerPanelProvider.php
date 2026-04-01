@@ -42,7 +42,7 @@ class WorkerPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Worker/Resources'), for: 'App\\Filament\\Worker\\Resources')
             // ->discoverResources(in: app_path('Filament/Shared/Resources'), for: 'App\\Filament\\Shared\\Resources')
             ->discoverPages(in: app_path('Filament/Worker/Pages'), for: 'App\\Filament\\Worker\\Pages')
-            // ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
+            ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
                 Pages\Dashboard::class,
             ])
@@ -63,10 +63,10 @@ class WorkerPanelProvider extends PanelProvider
                 CheckRole::class,
             ])
             ->navigationItems([
-                NavigationItem::make('Inventory')
-                    ->url(fn () => InventoryResource::getUrl('dash'))
-                    ->icon('heroicon-o-rectangle-group')
-                    ->sort('1')
+                // NavigationItem::make('Inventory')
+                //     ->url(fn () => InventoryResource::getUrl('dash'))
+                //     ->icon('heroicon-o-rectangle-group')
+                //     ->sort('1')
             ])
             ->authMiddleware([
                 Authenticate::class,

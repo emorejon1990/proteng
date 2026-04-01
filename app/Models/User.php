@@ -9,7 +9,8 @@ use Illuminate\Support\Str;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Notifications\Notifiable;
 use Filament\Models\Contracts\FilamentUser;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 
@@ -86,6 +87,7 @@ class User extends Authenticatable implements FilamentUser
             'Manager' => Filament::getPanel('manager')->getUrl(),
             'Worker' => Filament::getPanel('worker')->getUrl(),
             'Customer' => Filament::getPanel('customer')->getUrl(),
+            'Inst_Manager' => Filament::getPanel('customer')->getUrl(),
             default => url('/'),
         };
     }
@@ -93,5 +95,20 @@ class User extends Authenticatable implements FilamentUser
     public function customer()
     {
         return $this->hasOne(Customer::class);
+    }
+
+    public function managedInstallations(): HasMany
+    {
+        return $this->hasMany(Installation::class, 'inst_manager_user_id');
+    }
+
+    public function workerInstallations(): HasMany
+    {
+        return $this->hasMany(Installation::class, 'worker_user_id');
+    }
+
+    public function hasRol(array|string $roles): bool
+    {
+        return $this->hasRole($roles);
     }
 }

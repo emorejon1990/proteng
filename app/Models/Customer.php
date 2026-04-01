@@ -17,10 +17,6 @@ class Customer extends Model
         'active',
     ];
 
-    /* =====================
-     |  RELATIONS
-     |=====================*/
-
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -34,5 +30,10 @@ class Customer extends Model
     public function invoices(): HasMany
     {
         return $this->hasMany(Invoice::class);
+    }
+
+    public function installations(): HasMany
+    {
+        return $this->hasMany(Installation::class);
     }
 }

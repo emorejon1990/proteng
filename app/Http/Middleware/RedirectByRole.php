@@ -30,6 +30,8 @@ class RedirectByRole
             return redirect()->to('/worker');
         } elseif ($user->hasRole('Customer')) {
             return redirect()->to('/customer');
+        } elseif ($user->hasRole('Inst_Manager')) {
+            return redirect()->to('/customer');
         }
 
         return $next($request);
