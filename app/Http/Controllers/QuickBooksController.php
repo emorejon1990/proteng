@@ -6,10 +6,11 @@ use Illuminate\Http\Request;
 use QuickBooksOnline\API\DataService\DataService;
 use App\Models\QuickbooksToken;
 use Exception;
+use QuickBooksOnline\API\Core\OAuth\OAuth2\OAuth2LoginHelper;
 
 class QuickBooksController extends Controller
 {
-    protected function makeDataService(array $overrides = [])
+    protected function makeDataService(array $overrides = []): DataService
     {
         $config = array_merge([
             'auth_mode' => 'oauth2',
@@ -29,13 +30,13 @@ class QuickBooksController extends Controller
     {
         $dataService = $this->makeDataService();
 
-        // @var \QuickBooksOnline\API\Core\OAuth\OAuth2\OAuth2LoginHelper $oauth2LoginHelper
+        /** @var OAuth2LoginHelper $oauth2LoginHelper */
         $oauth2LoginHelper = $dataService->getOAuth2LoginHelper();
 
         // genera la URL de autorización
         $authUrl = $oauth2LoginHelper->getAuthorizationCodeURL();
 
-        return redirect($authUrl);
+        return redirect()->away($authUrl);
     }
 
     public function callback(Request $request)
@@ -43,7 +44,7 @@ class QuickBooksController extends Controller
         try {
             $dataService = $this->makeDataService();
 
-            // @var \QuickBooksOnline\API\Core\OAuth\OAuth2\OAuth2LoginHelper $oauth2LoginHelper
+            /** @var OAuth2LoginHelper $oauth2LoginHelper */
             $oauth2LoginHelper = $dataService->getOAuth2LoginHelper();
 
             // intercambia el code por tokens
