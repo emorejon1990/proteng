@@ -21,7 +21,7 @@ class QuickBooksController extends Controller
             'baseUrl' => env('QB_ENV'), // 'sandbox' o 'production'
         ], $overrides);
 
-        dd($config);
+        //dd($config);
 
         return DataService::Configure($config);
     }
