@@ -198,9 +198,9 @@ class InstallationResource extends Resource
     {
         return $table
             ->columns([
-                Tables\Columns\TextColumn::make('id')->sortable(),
+                // Tables\Columns\TextColumn::make('id')->sortable(),
                 Tables\Columns\TextColumn::make('customer.display_name')->label('Customer')->searchable(),
-                Tables\Columns\TextColumn::make('equipment.brand'.'equipment.model')->label('Equipment')->searchable(),
+                Tables\Columns\TextColumn::make('equipment.fullname')->label('Equipment')->searchable(),
                 Tables\Columns\TextColumn::make('status')->badge(),
                 Tables\Columns\TextColumn::make('instManager.name')->label('Inst. Manager'),
                 Tables\Columns\TextColumn::make('worker.name')->label('Worker'),
