@@ -125,7 +125,8 @@ class ProductsResource extends Resource
                         ->action(function (Collection $records) {
                             // Exportación PDF desactivada temporalmente para revisar el HTML.
                             // $products = $records->sortBy('serial')->values();
-                            // $pdf = Pdf::loadView('pdf.product-serials', compact('products'));
+                            // $pdf = Pdf::loadView('pdf.product-serials', compact('products'))
+                            //     ->setPaper('letter', 'portrait');
                             //
                             // return response()->streamDownload(
                             //     fn () => print($pdf->output()),

@@ -4,6 +4,11 @@
     <meta charset="UTF-8">
     <title>Product Serials</title>
     <style>
+        @page {
+            size: letter portrait;
+            margin: 27px;
+        }
+
         body {
             font-family: sans-serif;
             margin: 0;
@@ -19,7 +24,7 @@
         td.serial {
             width: 168px;
             height: 48px;
-            border: 1px solid #333;
+            /* border: 1px solid #333; */
             padding: 0;
             text-align: center;
             vertical-align: middle;
