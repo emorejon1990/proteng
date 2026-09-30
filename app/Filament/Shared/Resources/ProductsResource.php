@@ -9,6 +9,7 @@ use Filament\Tables\Table;
 use Filament\Resources\Resource;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Database\Eloquent\Collection;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Checkbox;
@@ -118,16 +119,25 @@ class ProductsResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\BulkAction::make('exportSerialsPdf')
-                        ->label('Export serials to PDF')
-                        ->icon('heroicon-o-document-arrow-down')
+                    Tables\Actions\BulkAction::make('previewSerialsHtml')
+                        ->label('Preview serials')
+                        ->icon('heroicon-o-eye')
                         ->action(function (Collection $records) {
-                            $products = $records->sortBy('serial')->values();
-                            $pdf = Pdf::loadView('pdf.product-serials', compact('products'));
+                            // Exportación PDF desactivada temporalmente para revisar el HTML.
+                            // $products = $records->sortBy('serial')->values();
+                            // $pdf = Pdf::loadView('pdf.product-serials', compact('products'));
+                            //
+                            // return response()->streamDownload(
+                            //     fn () => print($pdf->output()),
+                            //     'product-serials-' . now()->format('Y-m-d-His') . '.pdf'
+                            // );
 
-                            return response()->streamDownload(
-                                fn () => print($pdf->output()),
-                                'product-serials-' . now()->format('Y-m-d-His') . '.pdf'
+                            return redirect()->to(
+                                URL::temporarySignedRoute(
+                                    'products.serials.preview',
+                                    now()->addMinutes(15),
+                                    ['products' => $records->modelKeys()]
+                                )
                             );
                         })
                         ->deselectRecordsAfterCompletion(),

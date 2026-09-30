@@ -6,6 +6,7 @@ use App\Http\Middleware\RedirectByRole;
 use App\Filament\Pages\Auth\CustomLogin;
 use App\Http\Controllers\QuickBooksController;
 use App\Http\Controllers\QuickBooksInvoicePdfController;
+use App\Http\Controllers\ProductSerialPreviewController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 
 // Route::get('/', function () {
@@ -48,6 +49,10 @@ Route::middleware(['quickbooks'])->group(function () {
 });
 
 Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/products/serials/preview', ProductSerialPreviewController::class)
+        ->middleware('signed')
+        ->name('products.serials.preview');
+
     Route::get('/invoices/{invoice}/pdf', QuickBooksInvoicePdfController::class)
         ->name('invoices.pdf');
 });
