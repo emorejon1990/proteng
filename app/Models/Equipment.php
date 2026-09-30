@@ -45,10 +45,4 @@ class Equipment extends Model
     {
         return $this->hasMany(Installation::class);
     }
-
-    public function fullname()
-    {
-        $full = $this->brand.'-'.$this->model;
-        return $full;
-    }
 }
