@@ -204,7 +204,7 @@ class InstallationResource extends Resource
                 Tables\Columns\TextColumn::make('status')->badge(),
                 Tables\Columns\TextColumn::make('instManager.name')->label('Inst. Manager'),
                 Tables\Columns\TextColumn::make('worker.name')->label('Worker'),
-                Tables\Columns\TextColumn::make('created_at')->dateTime('m/d/Y H:i')->sortable(),
+                // Tables\Columns\TextColumn::make('created_at')->dateTime('m/d/Y H:i')->sortable(),
                 Tables\Columns\TextColumn::make('performed_at')->dateTime('m/d/Y H:i')->sortable(),
             ])
             ->filters([
@@ -216,16 +216,16 @@ class InstallationResource extends Resource
                         'completed' => 'Done (completed)',
                         'canceled' => 'Canceled',
                     ]),
-                Filter::make('created_at')
-                    ->form([
-                        DatePicker::make('from'),
-                        DatePicker::make('until'),
-                    ])
-                    ->query(function (Builder $query, array $data): Builder {
-                        return $query
-                            ->when($data['from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
-                            ->when($data['until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
-                    }),
+                // Filter::make('created_at')
+                //     ->form([
+                //         DatePicker::make('from'),
+                //         DatePicker::make('until'),
+                //     ])
+                //     ->query(function (Builder $query, array $data): Builder {
+                //         return $query
+                //             ->when($data['from'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '>=', $date))
+                //             ->when($data['until'] ?? null, fn (Builder $q, $date) => $q->whereDate('created_at', '<=', $date));
+                //     }),
                 Filter::make('performed_at')
                     ->form([
                         DatePicker::make('from'),

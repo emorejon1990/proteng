@@ -88,6 +88,8 @@ class ProductsResource extends Resource
     public static function table(Table $table): Table
     {
         return $table
+            ->defaultPaginationPageOption(100)
+            ->paginationPageOptions([100])
             ->columns([
                 TextColumn::make('asset_name')->label('Product'),
                 TextColumn::make('serial'),
