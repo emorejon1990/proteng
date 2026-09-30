@@ -7,7 +7,9 @@ use App\Models\Products;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Collection;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Checkbox;
 use Filament\Tables\Columns\TextColumn;
@@ -116,6 +118,19 @@ class ProductsResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('exportSerialsPdf')
+                        ->label('Export serials to PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->action(function (Collection $records) {
+                            $products = $records->sortBy('serial')->values();
+                            $pdf = Pdf::loadView('pdf.product-serials', compact('products'));
+
+                            return response()->streamDownload(
+                                fn () => print($pdf->output()),
+                                'product-serials-' . now()->format('Y-m-d-His') . '.pdf'
+                            );
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     Tables\Actions\DeleteBulkAction::make(),
                 ]),
             ]);
