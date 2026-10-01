@@ -5,27 +5,33 @@
     <title>Product Serials</title>
     <style>
         @page {
-            size: letter portrait;
-            margin: 27px;
+            size: 612pt 792pt;
+            margin: 38.16pt 19.8pt 32.4pt 21.24pt;
         }
 
+        html,
         body {
             font-family: sans-serif;
             margin: 0;
+            padding: 0;
         }
 
         table {
-            width: 762px;
+            width: 559.08pt;
             table-layout: fixed;
             border-collapse: collapse;
-            margin: 14mm 13mm;
-            /* margin-top: 14mm; */
+            border-spacing: 0;
+            margin: 0;
+        }
 
+        tr {
+            height: 36pt;
+            page-break-inside: avoid;
         }
 
         td.serial {
-            width: 44mm;
-            height: 13mm;
+            width: 126pt;
+            height: 36pt;
             /* border: 1px solid #333; */
             padding: 0;
             text-align: center;
@@ -35,21 +41,21 @@
 
         .server-barcode {
             display: block;
-            width: 40mm;
-            height: 7mm;
+            width: 113.04pt;
+            height: 27.36pt;
             margin: 0 auto;
         }
 
         .serial-value {
-            height: 2mm;
+            height: 8.64pt;
             font-family: monospace;
-            font-size: 2mm;
-            line-height: 2mm;
+            font-size: 8pt;
+            line-height: 8.64pt;
             text-align: center;
         }
 
         td.space {
-            width: 13mm;
+            width: 18.36pt;
             border: 0;
             padding: 0;
         }
@@ -57,6 +63,15 @@
 </head>
 <body>
     <table>
+        <colgroup>
+            <col style="width: 126pt">
+            <col style="width: 18.36pt">
+            <col style="width: 126pt">
+            <col style="width: 18.36pt">
+            <col style="width: 126pt">
+            <col style="width: 18.36pt">
+            <col style="width: 126pt">
+        </colgroup>
         <tbody>
             @foreach ($products as $product)
                 <tr>
