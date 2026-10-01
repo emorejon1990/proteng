@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Products;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
+use Picqer\Barcode\Renderers\SvgRenderer;
+use Picqer\Barcode\Types\TypeCode39;
 
 class ProductSerialPreviewController extends Controller
 {
@@ -30,6 +32,33 @@ class ProductSerialPreviewController extends Controller
 
         abort_if($products->isEmpty(), 404);
 
-        return view('pdf.product-serials', compact('products'));
+        $invalidSerial = $products->first(
+            fn (Products $product) => preg_match(
+                '/^[0-9A-Z\-. $\/+%]+$/',
+                (string) $product->serial
+            ) !== 1
+        );
+
+        abort_if(
+            $invalidSerial,
+            422,
+            "Serial {$invalidSerial?->serial} contains unsupported Code 39 characters."
+        );
+
+        $type = new TypeCode39();
+        $renderer = (new SvgRenderer())
+            ->setSvgType(SvgRenderer::TYPE_SVG_INLINE)
+            ->setBackgroundColor([255, 255, 255]);
+
+        $barcodes = $products->mapWithKeys(function (Products $product) use ($type, $renderer): array {
+            $barcode = $type->getBarcode((string) $product->serial);
+            $svg = $renderer->render($barcode, 140, 28);
+
+            return [
+                $product->getKey() => 'data:image/svg+xml;base64,' . base64_encode($svg),
+            ];
+        });
+
+        return view('pdf.product-serials', compact('products', 'barcodes'));
     }
 }
