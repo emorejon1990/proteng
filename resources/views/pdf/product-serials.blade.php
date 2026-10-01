@@ -6,7 +6,7 @@
     <style>
         @page {
             size: letter portrait;
-            margin: 16.25px;
+            margin: 27px;
         }
 
         body {
@@ -15,15 +15,15 @@
         }
 
         table {
-            width: 783.5px;
+            width: 762px;
             table-layout: fixed;
             border-collapse: collapse;
             margin: 0 auto;
         }
 
         td.serial {
-            width: 252.5px;
-            height: 96px;
+            width: 168px;
+            height: 48px;
             /* border: 1px solid #333; */
             padding: 0;
             text-align: center;
@@ -33,8 +33,8 @@
 
         .barcode {
             display: block;
-            max-width: 252.5px;
-            max-height: 96px;
+            max-width: 140px;
+            max-height: 48px;
             margin: 0 auto;
         }
 
@@ -44,7 +44,7 @@
         }
 
         td.space {
-            width: 13px;
+            width: 30px;
             border: 0;
             padding: 0;
         }
@@ -55,7 +55,7 @@
         <tbody>
             @foreach ($products as $product)
                 <tr>
-                    @for ($column = 0; $column < 3; $column++)
+                    @for ($column = 0; $column < 4; $column++)
                         <td class="serial">
                             <svg
                                 class="barcode"
@@ -64,7 +64,7 @@
                             ></svg>
                         </td>
 
-                        @if ($column < 2)
+                        @if ($column < 3)
                             <td class="space"></td>
                         @endif
                     @endfor
@@ -81,12 +81,12 @@
             try {
                 JsBarcode(element, serial, {
                     format: 'CODE39',
-                    width: 1.5,
-                    height: 60,
+                    width: 1,
+                    height: 28,
                     displayValue: true,
                     font: 'monospace',
-                    fontSize: 12,
-                    textMargin: 2,
+                    fontSize: 9,
+                    textMargin: 1,
                     margin: 0,
                     lineColor: '#000000',
                     background: '#ffffff',
