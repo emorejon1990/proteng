@@ -17,9 +17,9 @@
         }
 
         .page {
-            width: 590.76pt;
+            width: 590.4pt;
             height: 720pt;
-            padding: 38.16pt 0 0 21.24pt;
+            padding: 36pt 0 0 21.6pt;
             overflow: hidden;
             page-break-after: always;
         }
@@ -29,7 +29,7 @@
         }
 
         table {
-            width: 577.44pt;
+            width: 590.4pt;
             table-layout: fixed;
             border-collapse: collapse;
             border-spacing: 0;
@@ -42,7 +42,7 @@
         }
 
         td.slot {
-            width: 144.36pt;
+            width: 147.6pt;
             height: 36pt;
             padding: 0;
             vertical-align: top;
@@ -79,10 +79,10 @@
         <div class="page">
             <table>
                 <colgroup>
-                    <col style="width: 144.36pt">
-                    <col style="width: 144.36pt">
-                    <col style="width: 144.36pt">
-                    <col style="width: 144.36pt">
+                    <col style="width: 147.6pt">
+                    <col style="width: 147.6pt">
+                    <col style="width: 147.6pt">
+                    <col style="width: 147.6pt">
                 </colgroup>
                 <tbody>
                     @foreach ($pageProducts as $product)
