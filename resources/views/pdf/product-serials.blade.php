@@ -6,7 +6,7 @@
     <style>
         @page {
             size: 612pt 792pt;
-            margin: 38.16pt 19.8pt 32.4pt 21.24pt;
+            margin: 0;
         }
 
         html,
@@ -16,8 +16,20 @@
             padding: 0;
         }
 
+        .page {
+            width: 590.76pt;
+            height: 720pt;
+            padding: 38.16pt 0 0 21.24pt;
+            overflow: hidden;
+            page-break-after: always;
+        }
+
+        .page:last-child {
+            page-break-after: auto;
+        }
+
         table {
-            width: 559.08pt;
+            width: 577.44pt;
             table-layout: fixed;
             border-collapse: collapse;
             border-spacing: 0;
@@ -29,13 +41,19 @@
             page-break-inside: avoid;
         }
 
-        td.serial {
+        td.slot {
+            width: 144.36pt;
+            height: 36pt;
+            padding: 0;
+            vertical-align: top;
+            overflow: hidden;
+        }
+
+        .serial {
             width: 126pt;
             height: 36pt;
-            /* border: 1px solid #333; */
             padding: 0;
             text-align: center;
-            vertical-align: middle;
             overflow: hidden;
         }
 
@@ -54,45 +72,39 @@
             text-align: center;
         }
 
-        td.space {
-            width: 18.36pt;
-            border: 0;
-            padding: 0;
-        }
     </style>
 </head>
 <body>
-    <table>
-        <colgroup>
-            <col style="width: 126pt">
-            <col style="width: 18.36pt">
-            <col style="width: 126pt">
-            <col style="width: 18.36pt">
-            <col style="width: 126pt">
-            <col style="width: 18.36pt">
-            <col style="width: 126pt">
-        </colgroup>
-        <tbody>
-            @foreach ($products as $product)
-                <tr>
-                    @for ($column = 0; $column < 4; $column++)
-                        <td class="serial">
-                            <img
-                                class="server-barcode"
-                                src="{{ $barcodes[$product->getKey()] }}"
-                                alt="Barcode for {{ $product->serial }}"
-                            >
-                            <div class="serial-value">{{ $product->serial }}</div>
-                        </td>
-
-                        @if ($column < 3)
-                            <td class="space"></td>
-                        @endif
-                    @endfor
-                </tr>
-            @endforeach
-        </tbody>
-    </table>
+    @foreach ($products->chunk(20) as $pageProducts)
+        <div class="page">
+            <table>
+                <colgroup>
+                    <col style="width: 144.36pt">
+                    <col style="width: 144.36pt">
+                    <col style="width: 144.36pt">
+                    <col style="width: 144.36pt">
+                </colgroup>
+                <tbody>
+                    @foreach ($pageProducts as $product)
+                        <tr>
+                            @for ($column = 0; $column < 4; $column++)
+                                <td class="slot">
+                                    <div class="serial">
+                                        <img
+                                            class="server-barcode"
+                                            src="{{ $barcodes[$product->getKey()] }}"
+                                            alt="Barcode for {{ $product->serial }}"
+                                        >
+                                        <div class="serial-value">{{ $product->serial }}</div>
+                                    </div>
+                                </td>
+                            @endfor
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
+    @endforeach
 
 </body>
 </html>
