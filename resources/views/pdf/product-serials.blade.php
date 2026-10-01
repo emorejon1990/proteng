@@ -18,12 +18,14 @@
             width: 762px;
             table-layout: fixed;
             border-collapse: collapse;
-            margin: 0 auto;
+            margin: 14mm 13mm;
+            /* margin-top: 14mm; */
+
         }
 
         td.serial {
-            width: 168px;
-            height: 48px;
+            width: 44mm;
+            height: 13mm;
             /* border: 1px solid #333; */
             padding: 0;
             text-align: center;
@@ -33,21 +35,21 @@
 
         .server-barcode {
             display: block;
-            width: 140px;
-            height: 28px;
+            width: 40mm;
+            height: 7mm;
             margin: 0 auto;
         }
 
         .serial-value {
-            height: 12px;
+            height: 2mm;
             font-family: monospace;
-            font-size: 9px;
-            line-height: 12px;
+            font-size: 2mm;
+            line-height: 2mm;
             text-align: center;
         }
 
         td.space {
-            width: 30px;
+            width: 13mm;
             border: 0;
             padding: 0;
         }
