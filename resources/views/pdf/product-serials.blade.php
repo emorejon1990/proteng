@@ -34,6 +34,9 @@
             border-collapse: collapse;
             border-spacing: 0;
             margin: 0;
+            position: relative;
+            left: 2.835pt;
+            top: 5.669pt;
         }
 
         tr {
