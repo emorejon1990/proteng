@@ -7,10 +7,13 @@ use App\Models\Products;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Filament\Notifications\Notification;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Database\Eloquent\Collection;
+use Picqer\Barcode\Renderers\SvgRenderer;
+use Picqer\Barcode\Types\TypeCode39;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Checkbox;
 use Filament\Tables\Columns\TextColumn;
@@ -119,20 +122,57 @@ class ProductsResource extends Resource
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([
+                    Tables\Actions\BulkAction::make('exportSerialsPdf')
+                        ->label('Export serials to PDF')
+                        ->icon('heroicon-o-document-arrow-down')
+                        ->action(function (Collection $records) {
+                            $products = $records->sortBy('serial')->values();
+                            $invalidSerial = $products->first(
+                                fn (Products $product) => preg_match(
+                                    '/^[0-9A-Z\-. $\/+%]+$/',
+                                    (string) $product->serial
+                                ) !== 1
+                            );
+
+                            if ($invalidSerial) {
+                                Notification::make()
+                                    ->title('Invalid Code 39 serial')
+                                    ->body("Serial {$invalidSerial->serial} contains unsupported characters.")
+                                    ->danger()
+                                    ->send();
+
+                                return null;
+                            }
+
+                            $type = new TypeCode39();
+                            $renderer = (new SvgRenderer())
+                                ->setSvgType(SvgRenderer::TYPE_SVG_INLINE)
+                                ->setBackgroundColor([255, 255, 255]);
+
+                            $barcodes = $products->mapWithKeys(function (Products $product) use ($type, $renderer): array {
+                                $barcode = $type->getBarcode((string) $product->serial);
+                                $svg = $renderer->render($barcode, 140, 28);
+
+                                return [
+                                    $product->getKey() => 'data:image/svg+xml;base64,' . base64_encode($svg),
+                                ];
+                            });
+
+                            $pdf = Pdf::loadView(
+                                'pdf.product-serials',
+                                compact('products', 'barcodes')
+                            )->setPaper('letter', 'portrait');
+
+                            return response()->streamDownload(
+                                fn () => print($pdf->output()),
+                                'product-serials-' . now()->format('Y-m-d-His') . '.pdf'
+                            );
+                        })
+                        ->deselectRecordsAfterCompletion(),
                     Tables\Actions\BulkAction::make('previewSerialsHtml')
                         ->label('Preview serials')
                         ->icon('heroicon-o-eye')
                         ->action(function (Collection $records) {
-                            // Exportación PDF desactivada temporalmente para revisar el HTML.
-                            // $products = $records->sortBy('serial')->values();
-                            // $pdf = Pdf::loadView('pdf.product-serials', compact('products'))
-                            //     ->setPaper('letter', 'portrait');
-                            //
-                            // return response()->streamDownload(
-                            //     fn () => print($pdf->output()),
-                            //     'product-serials-' . now()->format('Y-m-d-His') . '.pdf'
-                            // );
-
                             return redirect()->to(
                                 URL::temporarySignedRoute(
                                     'products.serials.preview',

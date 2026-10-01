@@ -38,6 +38,21 @@
             margin: 0 auto;
         }
 
+        .server-barcode {
+            display: block;
+            width: 140px;
+            height: 28px;
+            margin: 0 auto;
+        }
+
+        .serial-value {
+            height: 12px;
+            font-family: monospace;
+            font-size: 9px;
+            line-height: 12px;
+            text-align: center;
+        }
+
         .barcode-error {
             color: #b91c1c;
             font-size: 9px;
@@ -57,11 +72,20 @@
                 <tr>
                     @for ($column = 0; $column < 4; $column++)
                         <td class="serial">
-                            <svg
-                                class="barcode"
-                                data-serial="{{ $product->serial }}"
-                                aria-label="Barcode for {{ $product->serial }}"
-                            ></svg>
+                            @if (isset($barcodes))
+                                <img
+                                    class="server-barcode"
+                                    src="{{ $barcodes[$product->getKey()] }}"
+                                    alt="Barcode for {{ $product->serial }}"
+                                >
+                                <div class="serial-value">{{ $product->serial }}</div>
+                            @else
+                                <svg
+                                    class="barcode"
+                                    data-serial="{{ $product->serial }}"
+                                    aria-label="Barcode for {{ $product->serial }}"
+                                ></svg>
+                            @endif
                         </td>
 
                         @if ($column < 3)
