@@ -87,7 +87,7 @@ class QuickBooks extends Page
         $error = null;
 
         try {
-            $customers = $dataService->Query("SELECT * FROM Item");
+            $customers = $dataService->Query("SELECT * FROM Item where Type='Inventory'");
             $this->customers = collect($customers)->map(function ($c) {
                 return [
                     'id'    => $c->Id ?? null,
