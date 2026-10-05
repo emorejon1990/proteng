@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Asset;
-use QuickBooksOnline\API\Facades\Item as QBItem;
 
 class AssetSyncService
 {
@@ -15,16 +14,16 @@ class AssetSyncService
     {
         $ds = $this->qb->ds();
         $items = $ds->Query("SELECT * FROM Item") ?? [];
-        $qbIds = collect($items)
-            ->map(fn ($qbItem) => (string) ($qbItem->Id ?? ''))
-            ->filter()
-            ->values()
-            ->all();
 
         foreach ($items as $qbItem) {
-            $asset = Asset::firstOrNew([
-                'quickbooks_id' => (string) $qbItem->Id,
-            ]);
+            $quickbooksId = (string) ($qbItem->Id ?? '');
+
+            if ($quickbooksId === '' || Asset::where('quickbooks_id', $quickbooksId)->exists()) {
+                continue;
+            }
+
+            $asset = new Asset;
+            $asset->quickbooks_id = $quickbooksId;
 
             $asset->name = $qbItem->Name ?? $qbItem->FullyQualifiedName ?? 'Producto';
             $asset->description = $qbItem->Description ?? $qbItem->PurchaseDesc ?? null;
@@ -33,16 +32,11 @@ class AssetSyncService
                 $asset->weight = 0;
                 $asset->weight_tolerance = 0;
             }
+            
+            $asset->weight = 0;
+            $asset->weight_tolerance = 0;
 
             $asset->save();
-        }
-
-        if (count($qbIds) === 0) {
-            Asset::whereNotNull('quickbooks_id')->delete();
-        } else {
-            Asset::whereNotNull('quickbooks_id')
-                ->whereNotIn('quickbooks_id', $qbIds)
-                ->delete();
         }
     }
 }
