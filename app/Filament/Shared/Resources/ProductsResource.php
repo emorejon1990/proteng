@@ -98,7 +98,7 @@ class ProductsResource extends Resource
             ->paginationPageOptions([100])
             ->columns([
                 TextColumn::make('asset_name')->label('Product'),
-                TextColumn::make('serial'),
+                TextColumn::make('serial')->searchable(),
                 TextColumn::make('weight')->suffix('g'),
                 TextColumn::make('assambler_name')->label('Assambler'),
                 TextColumn::make('filler_name')->label('Filler'),
