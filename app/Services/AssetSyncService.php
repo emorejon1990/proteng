@@ -13,7 +13,7 @@ class AssetSyncService
     public function sync(): void
     {
         $ds = $this->qb->ds();
-        $items = $ds->Query("SELECT * FROM Item") ?? [];
+        $items = $ds->Query("SELECT * FROM Item where Type='Inventory'") ?? [];
 
         foreach ($items as $qbItem) {
             $quickbooksId = (string) ($qbItem->Id ?? '');
@@ -32,7 +32,7 @@ class AssetSyncService
                 $asset->weight = 0;
                 $asset->weight_tolerance = 0;
             }
-            
+
             $asset->weight = 0;
             $asset->weight_tolerance = 0;
 
