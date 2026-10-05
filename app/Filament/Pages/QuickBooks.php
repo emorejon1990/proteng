@@ -87,14 +87,13 @@ class QuickBooks extends Page
         $error = null;
 
         try {
-            $customers = $dataService->Query("SELECT * FROM Customer MAXRESULTS 20");
+            $customers = $dataService->Query("SELECT * FROM Item");
             $this->customers = collect($customers)->map(function ($c) {
-                // dd($c);
                 return [
                     'id'    => $c->Id ?? null,
-                    'name'  => $c->DisplayName ?? null,
-                    'email' => $c->PrimaryEmailAddr->Address ?? null,
-                    'phone' => $c->PrimaryPhone->FreeFormNumber ?? null,
+                    'name'  => $c->Name ?? null,
+                    'email' => $c->Type ?? null,
+                    'phone' => $c->FullyQualifiedName ?? null,
                 ];
             })->toArray();
 
