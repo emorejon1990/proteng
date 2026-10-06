@@ -2,111 +2,140 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Product Serials</title>
+
     <style>
+        /* Cada página impresa será una etiqueta */
         @page {
-            size: 612pt 792pt;
+            size: 38mm 13mm;
             margin: 0;
+        }
+
+        * {
+            box-sizing: border-box;
         }
 
         html,
         body {
-            font-family: sans-serif;
             margin: 0;
             padding: 0;
         }
 
-        .page {
-            width: 590.4pt;
-            height: 720pt;
-            padding: 36pt 0 0 21.6pt;
+        body {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .label {
+            width: 38mm;
+            height: 13mm;
+
+            margin: 0;
+            padding: 0.8mm 1mm;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
             overflow: hidden;
+
+            break-inside: avoid;
+            page-break-inside: avoid;
+            break-after: page;
             page-break-after: always;
         }
 
-        .page:last-child {
+        .label:last-child {
+            break-after: auto;
             page-break-after: auto;
         }
 
-        table {
-            width: 590.4pt;
-            table-layout: fixed;
-            border-collapse: collapse;
-            border-spacing: 0;
-            margin: 0;
-            position: relative;
-            left: 2.835pt;
-            top: 5.669pt;
+        .barcode {
+            width: 34mm;
+            height: 7mm;
+            flex-shrink: 0;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        tr {
-            height: 36pt;
-            page-break-inside: avoid;
-        }
-
-        td.slot {
-            width: 147.6pt;
-            height: 36pt;
-            padding: 0;
-            vertical-align: top;
-            overflow: hidden;
+        .barcode img,
+        .barcode svg {
+            display: block;
+            width: auto;
+            height: auto;
+            max-width: 34mm;
+            max-height: 7mm;
         }
 
         .serial {
-            width: 126pt;
-            height: 36pt;
-            padding: 0;
+            width: 100%;
+            margin-top: 0.5mm;
+            flex-shrink: 0;
+
+            font-size: 7pt;
+            line-height: 1;
+            font-weight: bold;
             text-align: center;
-            overflow: hidden;
+
+            white-space: nowrap;
         }
 
-        .server-barcode {
-            display: block;
-            width: 113.04pt;
-            height: 27.36pt;
-            margin: 0 auto;
+        @media screen {
+            body {
+                background: #eee;
+            }
+
+            .label {
+                background: white;
+                margin: 5mm auto;
+                outline: 1px solid #aaa;
+            }
         }
 
-        .serial-value {
-            height: 8.64pt;
-            font-family: monospace;
-            font-size: 8pt;
-            line-height: 8.64pt;
-            text-align: center;
-        }
+        @media print {
+            html,
+            body {
+                width: 38mm;
+            }
 
+            body {
+                background: white;
+            }
+
+            .label {
+                margin: 0;
+                outline: none;
+            }
+        }
     </style>
 </head>
+
 <body>
-    @foreach ($products->chunk(20) as $pageProducts)
-        <div class="page">
-            <table>
-                <colgroup>
-                    <col style="width: 147.6pt">
-                    <col style="width: 147.6pt">
-                    <col style="width: 147.6pt">
-                    <col style="width: 147.6pt">
-                </colgroup>
-                <tbody>
-                    @foreach ($pageProducts as $product)
-                        <tr>
-                            @for ($column = 0; $column < 4; $column++)
-                                <td class="slot">
-                                    <div class="serial">
-                                        <img
-                                            class="server-barcode"
-                                            src="{{ $barcodes[$product->getKey()] }}"
-                                            alt="Barcode for {{ $product->serial }}"
-                                        >
-                                        <div class="serial-value">{{ $product->serial }}</div>
-                                    </div>
-                                </td>
-                            @endfor
-                        </tr>
-                    @endforeach
-                </tbody>
-            </table>
-        </div>
+
+    @foreach ($products as $product)
+
+        @for ($copy = 0; $copy < 4; $copy++)
+
+            <div class="label">
+
+                <div class="barcode">
+                    <img
+                        src="{{ $barcodes[$product->getKey()] }}"
+                        alt="{{ $product->serial }}"
+                        width="140"
+                        height="28"
+                    >
+                </div>
+
+                <div class="serial">
+                    {{ $product->serial }}
+                </div>
+
+            </div>
+
+        @endfor
+
     @endforeach
 
 </body>
