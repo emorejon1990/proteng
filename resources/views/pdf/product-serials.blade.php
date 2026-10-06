@@ -6,7 +6,7 @@
     <style>
         /* Cada página impresa será una etiqueta */
         @page {
-            size: 38mm 13mm;
+            size: 90.3mm 29.0mm;
             margin: 0;
         }
 
@@ -25,8 +25,8 @@
         }
 
         .label {
-            width: 38mm;
-            height: 13mm;
+            width: 90.3mm;
+            height: 29.0mm;
 
             margin: 0;
             padding: 0.8mm 1mm;
@@ -50,8 +50,8 @@
         }
 
         .barcode {
-            width: 34mm;
-            height: 7mm;
+            width: 86mm;
+            height: 15mm;
             flex-shrink: 0;
 
             display: flex;
@@ -62,8 +62,8 @@
         .barcode img,
         .barcode svg {
             display: block;
-            max-width: 34mm;
-            max-height: 7mm;
+            max-width: 86mm;
+            max-height: 15mm;
         }
 
         .serial {
