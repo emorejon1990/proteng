@@ -52,7 +52,7 @@ class ProductSerialPreviewController extends Controller
 
         $barcodes = $products->mapWithKeys(function (Products $product) use ($type, $renderer): array {
             $barcode = $type->getBarcode((string) $product->serial);
-            $svg = $renderer->render($barcode, 325, 57);
+            $svg = $renderer->render($barcode, 129, 27);
 
             return [
                 $product->getKey() => 'data:image/svg+xml;base64,' . base64_encode($svg),

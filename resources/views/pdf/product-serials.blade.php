@@ -6,7 +6,7 @@
     <style>
         /* Cada página impresa será una etiqueta */
         @page {
-            size: 90.3mm 29.0mm;
+            size: 38mm 13mm;
             margin: 0;
         }
 
@@ -18,6 +18,8 @@
         body {
             margin: 0;
             padding: 0;
+            width: 38mm;
+            height: 13mm;
         }
 
         body {
@@ -25,8 +27,8 @@
         }
 
         .label {
-            width: 90.3mm;
-            height: 29.0mm;
+            width: 38mm;
+            height: 13mm;
 
             margin: 0;
             padding: 0;
@@ -51,8 +53,8 @@
         }
 
         .barcode {
-            width: 86mm;
-            height: 15mm;
+            width: 34mm;
+            height: 7mm;
             flex-shrink: 0;
 
             display: flex;
@@ -63,8 +65,8 @@
         .barcode img,
         .barcode svg {
             display: block;
-            width: 86mm;
-            height: 15mm;
+            width: 34mm;
+            height: 7mm;
         }
 
         .serial {
@@ -72,7 +74,7 @@
             margin-top: 1mm;
             flex-shrink: 0;
 
-            font-size: 11pt;
+            font-size: 7pt;
             line-height: 1;
             font-weight: bold;
             text-align: center;
@@ -96,6 +98,7 @@
             html,
             body {
                 width: 38mm;
+                height: 13mm;
             }
 
             body {
