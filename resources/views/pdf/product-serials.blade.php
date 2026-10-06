@@ -62,8 +62,6 @@
         .barcode img,
         .barcode svg {
             display: block;
-            width: auto;
-            height: auto;
             max-width: 34mm;
             max-height: 7mm;
         }
