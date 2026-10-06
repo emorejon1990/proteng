@@ -29,7 +29,7 @@
             height: 29.0mm;
 
             margin: 0;
-            padding: 0.8mm 1mm;
+            padding: 0;
 
             display: flex;
             flex-direction: column;
@@ -42,6 +42,7 @@
             page-break-inside: avoid;
             break-after: page;
             page-break-after: always;
+            box-sizing: border-box;
         }
 
         .label:last-child {
@@ -68,10 +69,10 @@
 
         .serial {
             width: 100%;
-            margin-top: 0.5mm;
+            margin-top: 1mm;
             flex-shrink: 0;
 
-            font-size: 7pt;
+            font-size: 11pt;
             line-height: 1;
             font-weight: bold;
             text-align: center;
