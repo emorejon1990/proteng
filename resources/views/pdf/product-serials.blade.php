@@ -63,8 +63,8 @@
         .barcode img,
         .barcode svg {
             display: block;
-            max-width: 86mm;
-            max-height: 15mm;
+            width: 86mm;
+            height: 15mm;
         }
 
         .serial {
