@@ -123,8 +123,6 @@
                     <img
                         src="{{ $barcodes[$product->getKey()] }}"
                         alt="{{ $product->serial }}"
-                        width="140"
-                        height="28"
                     >
                 </div>
 
