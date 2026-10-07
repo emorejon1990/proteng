@@ -129,7 +129,7 @@
 
     @foreach ($products as $product)
 
-        @for ($copy = 0; $copy < 4; $copy++)
+        @for ($copy = 0; $copy < 1; $copy++)
 
             <div class="label">
 
