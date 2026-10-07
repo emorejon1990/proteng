@@ -74,8 +74,8 @@
             display: block;
             /* width: 34mm;
             height: 7mm; */
-            width: 86mm;
-            height: 15mm;
+            width: 321px;
+            height: 55px;
         }
 
         .serial {
