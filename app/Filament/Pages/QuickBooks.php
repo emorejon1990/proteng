@@ -83,22 +83,35 @@ class QuickBooks extends Page
         $serviceContext = $dataService->getServiceContext();
         $serviceContext->realmId = (string) $token->realm_id;
 
-        $customers = null;
-        $error = null;
-
         try {
-            $customers = $dataService->Query("SELECT * FROM Customer");
+            $customers = [];
+            $startPosition = 1;
+            $pageSize = 1000;
+
+            do {
+                $page = $dataService->Query(
+                    "SELECT * FROM Customer WHERE Active IN (true, false) ORDERBY Id STARTPOSITION {$startPosition} MAXRESULTS {$pageSize}"
+                ) ?? [];
+
+                foreach ($page as $customer) {
+                    $customers[] = $customer;
+                }
+
+                $startPosition += $pageSize;
+            } while (count($page) === $pageSize);
+
             $this->customers = collect($customers)->map(function ($c) {
                 return [
                     'id'    => $c->Id ?? null,
-                    'name'  => $c->Name ?? null,
-                    'email' => $c->Type ?? null,
-                    'phone' => $c->FullyQualifiedName ?? null,
+                    'name'  => $c->DisplayName ?? $c->FullyQualifiedName ?? null,
+                    'email' => $c->PrimaryEmailAddr->Address ?? null,
+                    'phone' => $c->PrimaryPhone->FreeFormNumber ?? null,
                 ];
             })->toArray();
 
             Notification::make()
                 ->title('Customers cargados correctamente')
+                ->body(count($this->customers) . ' customers cargados.')
                 ->success()
                 ->send();
         } catch (ServiceException $e) {

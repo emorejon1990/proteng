@@ -48,7 +48,21 @@ class CustomerSyncService
     public function sync(): void
     {
         $ds = $this->qb->ds();
-        $customers = $ds->Query("SELECT * FROM Customer");
+        $customers = [];
+        $startPosition = 1;
+        $pageSize = 1000;
+
+        do {
+            $page = $ds->Query(
+                "SELECT * FROM Customer WHERE Active IN (true, false) ORDERBY Id STARTPOSITION {$startPosition} MAXRESULTS {$pageSize}"
+            ) ?? [];
+
+            foreach ($page as $customer) {
+                $customers[] = $customer;
+            }
+
+            $startPosition += $pageSize;
+        } while (count($page) === $pageSize);
 
         foreach ($customers as $qbCustomer) {
             $customer = Customer::updateOrCreate(
