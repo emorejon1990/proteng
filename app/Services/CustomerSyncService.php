@@ -60,7 +60,7 @@ class CustomerSyncService
                 ]
             );
 
-            $this->createUser($customer);
+            // $this->createUser($customer);
         }
     }
 
