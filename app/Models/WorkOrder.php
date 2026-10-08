@@ -2,11 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Facades\Log;
-use Illuminate\Database\Eloquent\Model;
+use App\Http\Controllers\SerialController;
 use App\Http\Controllers\WorkOrderController;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class WorkOrder extends Model
 {
@@ -64,12 +66,12 @@ class WorkOrder extends Model
 
     public function workOrderAssets(): HasMany
     {
-        return $this->hasMany(\App\Models\WorkOrderAsset::class, 'work_order_id');
+        return $this->hasMany(WorkOrderAsset::class, 'work_order_id');
     }
 
     public function distributions()
     {
-        return $this->belongsToMany(Asset::class,'wo_ass')
+        return $this->belongsToMany(Asset::class, 'wo_ass')
             ->withPivot(['quantity'])
             ->withTimestamps();
     }
@@ -80,7 +82,7 @@ class WorkOrder extends Model
             if (empty($wo->name)) {
                 if ($wo->type_id == 1) {
                     $wo->name = WorkOrderController::WOname('WO');
-                }elseif ($wo->type_id == 2) {
+                } elseif ($wo->type_id == 2) {
                     $wo->name = WorkOrderController::WOname('WD');
                 }
             }
@@ -97,23 +99,52 @@ class WorkOrder extends Model
         });
 
         static::updated(function (WorkOrder $wo) {
-            // Verificar si el status_id cambió a 2
-            if ($wo->isDirty('status_id') && $wo->status_id == 2 && $wo->type_id == 1) {
-                // Crear productos según la cantidad
-                for ($i = 0; $i < $wo->quant; $i++) {
-                    Products::create([
+            if ($wo->wasChanged('status_id') && $wo->status_id == 2 && $wo->type_id == 1
+                && ! $wo->products()->exists()) {
+                $quantity = (int) $wo->quant;
+                SerialController::reserve($quantity);
+                for ($i = 0; $i < $quantity; $i++) {
+                    $wo->products()->create([
                         'asset_id' => $wo->asset_id,
-                        'work_order_id' => $wo->id,
                         'location_id' => 1,
                         'status_id' => 3,
-                        // Otros campos que quieras definir por defecto
-                        //
-                        // 'serial' => generarSerial(), // si aplica
                     ]);
                 }
-
-                Log::info("Se crearon {$wo->quantity} productos para la WorkOrder {$wo->id}");
+                Log::info("Se crearon {$quantity} productos para la WorkOrder {$wo->id}");
             }
+        });
+
+        static::deleting(function (WorkOrder $wo) {
+            if ($wo->type_id == 1) {
+                $pending = $wo->products()->where(function ($query) {
+                    $query->whereNull('serial')->orWhere('serial', '');
+                })->count();
+                SerialController::release($pending);
+                // Preserve products and used serials when removing their order.
+                $wo->products()->update(['work_order_id' => null]);
+            }
+        });
+    }
+
+    public function save(array $options = [])
+    {
+        return DB::transaction(function () use ($options) {
+            if ($this->exists) {
+                static::whereKey($this->getKey())->lockForUpdate()->firstOrFail();
+            }
+
+            return parent::save($options);
+        });
+    }
+
+    public function delete()
+    {
+        return DB::transaction(function () {
+            if ($this->exists) {
+                static::whereKey($this->getKey())->lockForUpdate()->firstOrFail();
+            }
+
+            return parent::delete();
         });
     }
 }

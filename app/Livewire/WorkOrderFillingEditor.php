@@ -3,17 +3,19 @@
 namespace App\Livewire;
 
 use App\Models\Asset;
-use Livewire\Component;
 use App\Models\Products;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\Auth;
-use App\Http\Controllers\ProductsController;
+use Livewire\Component;
 
 class WorkOrderFillingEditor extends Component
 {
     public WorkOrder $workOrder;
+
     public $productIds = [];
+
     public $currentIndex = 0;
+
     public $currentProduct;
 
     public $checkTest = false;
@@ -25,11 +27,13 @@ class WorkOrderFillingEditor extends Component
     ];
 
     protected $listeners = [
-        'pesoManualCambiado' => 'validatePeso'
+        'pesoManualCambiado' => 'validatePeso',
     ];
 
     public $asset;
+
     public $min;
+
     public $max;
 
     public function mount(WorkOrder $workOrder)
@@ -44,18 +48,19 @@ class WorkOrderFillingEditor extends Component
         $this->productIds = $workOrder->products()
             ->where(function ($query) {
                 $query->where('filled', false)
-                  ->orWhereNull('filled');
+                    ->orWhereNull('filled');
             })
-        ->pluck('id')
-        ->toArray();
+            ->pluck('id')
+            ->toArray();
         // dump($this->productIds);
         $this->loadCurrentProduct();
     }
 
     public function loadCurrentProduct()
     {
-        if (!isset($this->productIds[$this->currentIndex])) {
+        if (! isset($this->productIds[$this->currentIndex])) {
             $this->currentProduct = null;
+
             return;
         }
 
@@ -68,9 +73,9 @@ class WorkOrderFillingEditor extends Component
 
     public function saveAndNext()
     {
-        if (!$this->currentProduct) return;
-
-        $serial = ProductsController::Serial();
+        if (! $this->currentProduct) {
+            return;
+        }
 
         // Asigna valores obligatorios
         $this->currentProduct->fill_by = Auth::id();
@@ -78,8 +83,6 @@ class WorkOrderFillingEditor extends Component
         $this->currentProduct->filled = $this->filled;
         $this->currentProduct->weight = $this->currentProductData['weight'];
         $this->currentProduct->location_id = 2;
-        $this->currentProduct->serial = $serial;
-
 
         $this->validate([
             'currentProduct.fill_by' => 'required|integer',
@@ -98,8 +101,8 @@ class WorkOrderFillingEditor extends Component
 
         $this->currentProduct->save();
         $this->currentProduct->logHistory(
-            process: "Filled",
-            description: "Filled and Serial",
+            process: 'Filled',
+            description: 'Filled and Serial',
             location: 'Filled Area'
         );
 
@@ -114,7 +117,6 @@ class WorkOrderFillingEditor extends Component
             $this->dispatch('reload-page');
         }
     }
-
 
     public function updatedCurrentProductDataWeight($value)
     {

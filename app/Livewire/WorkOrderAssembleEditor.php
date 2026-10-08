@@ -2,16 +2,20 @@
 
 namespace App\Livewire;
 
-use Livewire\Component;
+use App\Http\Controllers\SerialController;
 use App\Models\Products;
 use App\Models\WorkOrder;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Component;
 
 class WorkOrderAssembleEditor extends Component
 {
     public WorkOrder $workOrder;
+
     public $productIds = [];
+
     public $currentIndex = 0;
+
     public $currentProduct;
 
     public $checkTest = false;
@@ -31,23 +35,26 @@ class WorkOrderAssembleEditor extends Component
         $this->productIds = $workOrder->products()
             ->where(function ($query) {
                 $query->where('assambled', false)
-                  ->orWhereNull('assambled');
+                    ->orWhereNull('assambled');
             })
-        ->pluck('id')
-        ->toArray();
+            ->pluck('id')
+            ->toArray();
         // dump($this->productIds);
         $this->loadCurrentProduct();
     }
 
     public function loadCurrentProduct()
     {
-        $this->currentProduct = Products::find($this->productIds[$this->currentIndex]);
+        $this->currentProduct = isset($this->productIds[$this->currentIndex])
+            ? Products::find($this->productIds[$this->currentIndex]) : null;
         $this->assambled = (bool) $this->currentProduct?->assambled;
     }
 
     public function saveAndNext()
     {
-        if (!$this->currentProduct) return;
+        if (! $this->currentProduct) {
+            return;
+        }
 
         $this->currentProduct->assambled = $this->assambled;
         $this->currentProduct->assambly_by = Auth::id();
@@ -56,7 +63,11 @@ class WorkOrderAssembleEditor extends Component
 
         $this->validate();
 
-        $this->currentProduct->save();
+        $this->currentProduct = SerialController::assemble($this->currentProduct, [
+            'assambled' => $this->currentProduct->assambled,
+            'assambly_by' => $this->currentProduct->assambly_by,
+            'assambly_date' => $this->currentProduct->assambly_date,
+        ]);
 
         if ($this->currentIndex < count($this->productIds) - 1) {
             $this->currentIndex++;

@@ -2,10 +2,9 @@
 
 namespace App\Models;
 
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Auth;
 
 class Products extends Model
 {
@@ -13,6 +12,8 @@ class Products extends Model
 
     protected $fillable = [
         'serial',
+        'work_order_id',
+        'location_id',
         'weight',
         'f_weight',
         'assambly_by',
@@ -25,7 +26,7 @@ class Products extends Model
         'quality_date',
         'qualifiled',
         'status_id',
-        'asset_id'
+        'asset_id',
     ];
 
     protected $casts = [
@@ -41,7 +42,7 @@ class Products extends Model
 
     public function wo(): BelongsTo
     {
-        return $this->belongsTo(WorkOrder::class);
+        return $this->belongsTo(WorkOrder::class, 'work_order_id');
     }
 
     public function status(): BelongsTo
@@ -114,6 +115,4 @@ class Products extends Model
             'description' => $description,
         ]);
     }
-
-
 }
