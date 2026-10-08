@@ -6,6 +6,7 @@ use App\Models\WorkOrder;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 uses(TestCase::class);
@@ -70,9 +71,11 @@ it('reserves once, assigns during assembly and releases only unused reservations
     $product = $order->products()->first();
     SerialController::assemble($product, ['assambled' => false]);
     expect($product->fresh()->serial)->toBeNull();
-    $product = SerialController::assemble($product, ['assambled' => true]);
+    $selected = Serial::where('status', Serial::STATUS_RESERVED)->orderByDesc('id')->first();
+    $product = SerialController::assemble($product, ['assambled' => true], $selected->serial);
+    expect($product->serial)->toBe($selected->serial);
     $serial = $product->serial;
-    SerialController::assemble($product, ['assambled' => true]);
+    SerialController::assemble($product, ['assambled' => true], $serial);
     expect($product->fresh()->serial)->toBe($serial)
         ->and(Serial::where('products_id', $product->id)->first()->status_name)->toBe('Used');
     $order->delete();
@@ -89,4 +92,32 @@ it('rolls back a transition when product creation fails', function () {
     $order->status_id = 2;
     expect(fn () => $order->save())->toThrow(QueryException::class);
     expect($order->fresh()->status_id)->toBe(1)->and(Serial::count())->toBe(0);
+});
+
+it('accepts a free serial and releases one reservation', function () {
+    $order = poolOrder(2);
+    $selected = Serial::where('status', Serial::STATUS_FREE)->first();
+    $product = SerialController::assemble($order->products()->first(), ['assambled' => true], strtolower($selected->serial));
+    expect($product->serial)->toBe($selected->serial)
+        ->and($selected->fresh()->status)->toBe(Serial::STATUS_USED)
+        ->and(Serial::where('status', Serial::STATUS_RESERVED)->count())->toBe(1);
+    $order->delete();
+    expect(Serial::where('status', Serial::STATUS_RESERVED)->count())->toBe(0);
+});
+
+it('rejects missing, unknown, used and already linked serials without saving assembly', function () {
+    $order = poolOrder(2);
+    $products = $order->products()->get();
+    $selected = Serial::where('status', Serial::STATUS_RESERVED)->first();
+    SerialController::assemble($products[0], ['assambled' => true], $selected->serial);
+    foreach (['', 'Z9999999Z', $selected->serial] as $input) {
+        expect(fn () => SerialController::assemble($products[1], ['assambled' => true], $input))
+            ->toThrow(ValidationException::class);
+    }
+    $linked = Serial::where('status', Serial::STATUS_FREE)->first();
+    $linked->update(['products_id' => $products[0]->id]);
+    expect(fn () => SerialController::assemble($products[1], ['assambled' => true], $linked->serial))
+        ->toThrow(ValidationException::class);
+    expect($products[1]->fresh()->serial)->toBeNull()
+        ->and($products[1]->fresh()->assambled)->toBeFalse();
 });

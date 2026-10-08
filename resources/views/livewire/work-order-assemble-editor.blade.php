@@ -7,9 +7,14 @@
     @if ($currentProduct)
         <div class="space-y-2">
             <div>
-                <label class="block text-sm font-medium">Serial: {{$currentProduct->serial}}</label>
-                {{-- <input type="text" wire:model="currentProduct.serial"
-                       class="border rounded w-full px-2 py-1 text-sm" /> --}}
+                <label for="assembly-serial" class="block text-sm font-medium">Serial</label>
+                <input id="assembly-serial" type="text" wire:model="serialInput"
+                       maxlength="9" autocomplete="off"
+                       @readonly($currentProduct->serial)
+                       class="border rounded w-full px-2 py-1 text-sm uppercase" />
+                @error('serialInput')
+                    <p class="text-sm text-red-600">{{ $message }}</p>
+                @enderror
             </div>
 
             {{-- <div>

@@ -20,12 +20,15 @@ class WorkOrderAssembleEditor extends Component
 
     public $checkTest = false;
 
+    public string $serialInput = '';
+
     public bool $assambled = false; // Agrega esta propiedad
 
     public $rules = [
         'currentProduct.assambly_by' => 'integer',
         'currentProduct.assambly_date' => 'date',
         'currentProduct.assambled' => 'required|boolean',
+        'serialInput' => 'required_if:assambled,true|nullable|string|size:9|regex:/^[A-Z][0-9]{7}[A-Z]$/',
     ];
 
     public function mount(WorkOrder $workOrder)
@@ -48,6 +51,8 @@ class WorkOrderAssembleEditor extends Component
         $this->currentProduct = isset($this->productIds[$this->currentIndex])
             ? Products::find($this->productIds[$this->currentIndex]) : null;
         $this->assambled = (bool) $this->currentProduct?->assambled;
+        $this->serialInput = $this->currentProduct?->serial ?? '';
+        $this->resetValidation();
     }
 
     public function saveAndNext()
@@ -61,13 +66,14 @@ class WorkOrderAssembleEditor extends Component
         $this->currentProduct->assambly_date = now();
         // $this->currentProduct->save();
 
+        $this->serialInput = strtoupper(trim($this->serialInput));
         $this->validate();
 
         $this->currentProduct = SerialController::assemble($this->currentProduct, [
             'assambled' => $this->currentProduct->assambled,
             'assambly_by' => $this->currentProduct->assambly_by,
             'assambly_date' => $this->currentProduct->assambly_date,
-        ]);
+        ], $this->serialInput);
 
         if ($this->currentIndex < count($this->productIds) - 1) {
             $this->currentIndex++;

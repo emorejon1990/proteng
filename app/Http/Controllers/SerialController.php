@@ -8,6 +8,7 @@ use App\Models\WorkOrder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use RuntimeException;
 
@@ -78,21 +79,35 @@ class SerialController extends Controller
         });
     }
 
-    public static function assemble(Products $product, array $attributes): Products
+    public static function assemble(Products $product, array $attributes, string $serialInput = ''): Products
     {
-        return DB::transaction(function () use ($product, $attributes) {
+        return DB::transaction(function () use ($product, $attributes, $serialInput) {
             // Match the lock order used when deleting a work order.
             if ($product->work_order_id) {
                 WorkOrder::whereKey($product->work_order_id)
                     ->lockForUpdate()->firstOrFail();
             }
             $product = Products::whereKey($product->id)->lockForUpdate()->firstOrFail();
+            // Serial assignment is controlled by the scanned value, not mass assignment.
+            unset($attributes['serial']);
             $product->fill($attributes);
+            $serialInput = strtoupper(trim($serialInput));
+            if (! empty($product->serial) && $serialInput !== $product->serial) {
+                throw ValidationException::withMessages([
+                    'serialInput' => 'Este producto ya tiene un serial asignado.',
+                ]);
+            }
             if ($product->assambled && empty($product->serial)) {
-                $serial = Serial::where('status', Serial::STATUS_RESERVED)
-                    ->whereNull('products_id')->orderBy('id')->lockForUpdate()->first();
-                if (! $serial) {
-                    throw new RuntimeException('There are no reserved serials available.');
+                $serial = Serial::where('serial', $serialInput)->lockForUpdate()->first();
+                if (! $serial || ! in_array($serial->status, [Serial::STATUS_FREE, Serial::STATUS_RESERVED], true)
+                    || $serial->products_id !== null) {
+                    throw ValidationException::withMessages([
+                        'serialInput' => 'El serial debe existir y estar Free o Reserved, sin producto asignado.',
+                    ]);
+                }
+                if ($serial->status === Serial::STATUS_FREE && $product->work_order_id) {
+                    // Using a free serial consumes one pending reservation in the global pool.
+                    self::release(1);
                 }
                 $product->serial = $serial->serial;
                 $serial->update([
