@@ -1,12 +1,17 @@
 <?php
 
 use App\Http\Controllers\SerialController;
+use App\Http\Controllers\SerialExportController;
 use App\Models\Serial;
+use App\Models\User;
 use App\Models\WorkOrder;
 use Illuminate\Database\QueryException;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 uses(TestCase::class);
@@ -35,6 +40,7 @@ beforeEach(function () {
     });
     (require base_path('database/migrations/2026_10_07_171107_create_serial_table.php'))->up();
     (require base_path('database/migrations/2026_10_08_000000_add_serial_pool_constraints.php'))->up();
+    (require base_path('database/migrations/2026_10_09_000000_add_printed_to_serial_table.php'))->up();
 });
 
 function poolOrder(int $quantity): WorkOrder
@@ -46,6 +52,44 @@ function poolOrder(int $quantity): WorkOrder
 
     return $order;
 }
+
+function exportPoolSerials(mixed $quantity, bool $authorized = true): Response
+{
+    $user = Mockery::mock(User::class);
+    $user->shouldReceive('hasRole')->with(['Admin', 'Manager'])->andReturn($authorized);
+    $request = Request::create('/serials/export', 'POST', ['quantity' => $quantity]);
+    $request->setUserResolver(fn () => $user);
+
+    return (new SerialExportController)($request);
+}
+
+it('exports reserved then free serials using the existing label template and excludes printed and used serials', function () {
+    $free = Serial::create(['serial' => 'A0000001A']);
+    $reserved = Serial::create(['serial' => 'A0000002A', 'status' => Serial::STATUS_RESERVED]);
+    $printed = Serial::create(['serial' => 'A0000003A', 'printed' => true]);
+    $used = Serial::create(['serial' => 'A0000004A', 'status' => Serial::STATUS_USED]);
+    $remaining = Serial::create(['serial' => 'A0000005A']);
+
+    $html = exportPoolSerials(2)->getContent();
+    expect($html)->toContain($reserved->serial, $free->serial, 'data:image/svg+xml;base64,', '90.3mm')
+        ->not->toContain($printed->serial, $used->serial, $remaining->serial);
+    expect(strpos($html, $reserved->serial))->toBeLessThan(strpos($html, $free->serial));
+    expect($reserved->fresh()->printed)->toBeTrue()
+        ->and($free->fresh()->printed)->toBeTrue()
+        ->and($remaining->fresh()->printed)->toBeFalse()
+        ->and($used->fresh()->printed)->toBeFalse();
+    expect(fn () => exportPoolSerials(2))->toThrow(ValidationException::class);
+    expect($remaining->fresh()->printed)->toBeFalse();
+});
+
+it('rejects unauthorized exports and invalid quantities without marking serials', function () {
+    $serial = Serial::create(['serial' => 'A0000001A']);
+    expect(fn () => exportPoolSerials(1, false))->toThrow(HttpException::class);
+    foreach ([0, -1, 1.5, 'abc'] as $quantity) {
+        expect(fn () => exportPoolSerials($quantity))->toThrow(ValidationException::class);
+    }
+    expect($serial->fresh()->printed)->toBeFalse();
+});
 
 it('generates free unique serials and replenishes in batches of 100', function () {
     SerialController::generatepool(5);

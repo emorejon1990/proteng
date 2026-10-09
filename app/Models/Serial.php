@@ -21,11 +21,11 @@ class Serial extends Model
 
     protected $table = 'serial';
 
-    protected $fillable = ['serial', 'status', 'products_id'];
+    protected $fillable = ['serial', 'status', 'products_id', 'printed'];
 
-    protected $attributes = ['status' => self::STATUS_FREE];
+    protected $attributes = ['status' => self::STATUS_FREE, 'printed' => false];
 
-    protected $casts = ['status' => 'integer'];
+    protected $casts = ['status' => 'integer', 'printed' => 'boolean'];
 
     public function getStatusNameAttribute(): string
     {

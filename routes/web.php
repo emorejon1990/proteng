@@ -7,6 +7,7 @@ use App\Filament\Pages\Auth\CustomLogin;
 use App\Http\Controllers\QuickBooksController;
 use App\Http\Controllers\QuickBooksInvoicePdfController;
 use App\Http\Controllers\ProductSerialPreviewController;
+use App\Http\Controllers\SerialExportController;
 use App\Http\Controllers\Auth\ForcePasswordChangeController;
 
 // Route::get('/', function () {
@@ -49,6 +50,8 @@ Route::middleware(['quickbooks'])->group(function () {
 });
 
 Route::middleware(['web', 'auth'])->group(function () {
+    Route::post('/serials/export', SerialExportController::class)->name('serials.export');
+
     Route::get('/products/serials/preview', ProductSerialPreviewController::class)
         ->middleware('signed')
         ->name('products.serials.preview');
