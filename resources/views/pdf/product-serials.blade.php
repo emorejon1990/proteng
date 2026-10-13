@@ -6,8 +6,8 @@
     <style>
         /* Cada página impresa será una etiqueta */
         @page {
-            /* size: 38mm 13mm; */
-            size: 90.3mm 29mm;
+            size: 38mm 13mm;
+            /* size: 90.3mm 29mm; */
             margin: 0;
         }
 
@@ -19,10 +19,10 @@
         body {
             margin: 0;
             padding: 0;
-            /* width: 38mm;
-            height: 13mm; */
-            width: 90.3mm;
-            height: 29mm;
+            width: 38mm;
+            height: 13mm;
+            /* width: 90.3mm;
+            height: 29mm; */
         }
 
         body {
@@ -30,10 +30,10 @@
         }
 
         .label {
-            /* width: 38mm;
-            height: 13mm; */
-            width: 90.3mm;
-            height: 29mm;
+            width: 38mm;
+            height: 13mm;
+            /* width: 90.3mm;
+            height: 29mm; */
 
             margin: 0;
             padding: 0;
@@ -58,10 +58,10 @@
         }
 
         .barcode {
-            /* width: 34mm;
-            height: 7mm; */
-            width: 86mm;
-            height: 15mm;
+            width: 34mm;
+            height: 7mm;
+            /* width: 86mm;
+            height: 15mm; */
             flex-shrink: 0;
 
             display: flex;
@@ -72,10 +72,10 @@
         .barcode img,
         .barcode svg {
             display: block;
-            /* width: 34mm;
-            height: 7mm; */
-            width: 321px;
-            height: 55px;
+            width: 34mm;
+            height: 7mm;
+            /* width: 321px;
+            height: 55px; */
         }
 
         .serial {
@@ -83,8 +83,8 @@
             margin-top: 1mm;
             flex-shrink: 0;
 
-            /* font-size: 7pt; */
-            font-size: 11pt;
+            font-size: 7pt;
+            /* font-size: 11pt; */
             line-height: 1;
             font-weight: bold;
             text-align: center;
@@ -107,10 +107,10 @@
         @media print {
             html,
             body {
-                /* width: 38mm;
-                height: 13mm; */
-                width: 90.3mm;
-                height: 29mm;
+                width: 38mm;
+                height: 13mm;
+                /* width: 90.3mm;
+                height: 29mm; */
             }
 
             body {

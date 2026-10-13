@@ -42,7 +42,7 @@ class SerialExportController extends Controller
                 ->setBackgroundColor([255, 255, 255]);
 
             $barcodes = $products->mapWithKeys(function (Serial $serial) use ($type, $renderer): array {
-                $svg = $renderer->render($type->getBarcode($serial->serial), 325, 57);
+                $svg = $renderer->render($type->getBarcode($serial->serial), 129, 27);
 
                 return [$serial->getKey() => 'data:image/svg+xml;base64,'.base64_encode($svg)];
             });
