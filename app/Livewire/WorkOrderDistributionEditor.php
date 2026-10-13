@@ -2,183 +2,93 @@
 
 namespace App\Livewire;
 
-use App\Http\Controllers\WorkOrderController;
-use App\Models\Asset;
-use Livewire\Component;
-use App\Models\Products;
 use App\Models\WorkOrder;
-use Carbon\Carbon;
+use App\Models\WorkOrderProduct;
+use App\Services\DistributionSelectionService;
+use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
+use Livewire\Component;
 
 class WorkOrderDistributionEditor extends Component
 {
+    #[Locked]
     public WorkOrder $workOrder;
-    public $products;
-    public $checkedProducts = [];
-    public Products $prod;
-    public $stillalive = false;
 
-    public function mount(WorkOrder $workOrder)
+    public ?int $assetId = null;
+
+    public string $serialInput = '';
+
+    public string $notice = '';
+
+    public function mount(WorkOrder $workOrder): void
     {
         $this->workOrder = $workOrder;
-        $this->refreshProducts($workOrder);
-
-        // // Obtén la relación y conviértela a array para que Livewire pueda manejarla sin perder datos
-        // $this->products = $workOrder->distributions()->withPivot('quantity')->get()->map(function ($product) {
-        //     $prod = Products::where('asset_id',$product->id)->where('location_id','4')->get();
-        //     return [
-        //         'id' => $product->id,
-        //         'name' => $product->name,
-        //         'quantity' => $product->pivot->quantity,
-        //         'dispo' => count($prod)
-        //     ];
-        // });
-
-        // Inicializa los checkboxes
-        foreach ($this->products as $product) {
-            $this->checkedProducts[$product['id']] = false;
-        }
-
+        $service = app(DistributionSelectionService::class);
+        $service->checkOrder($workOrder, Auth::user());
+        $this->assetId = array_key_first($service->requirements($workOrder));
     }
 
-    private function refreshProducts($workOrder)
+    public function scanSerial(): void
     {
-        // Obtén la relación y conviértela a array para que Livewire pueda manejarla sin perder datos
-        $this->products = $workOrder->distributions()->withPivot('quantity')->get()->map(function ($product) {
-            $prod = Products::where('asset_id',$product->id)->where('location_id','4')->get();
-            if (WorkOrder::where('asset_id', $product->id)->where('for', $this->workOrder->id)->exists())
-            {
-                $this->stillalive = false;
-            }
-            return [
-                'id' => $product->id,
-                'name' => $product->name,
-                'quantity' => $product->pivot->quantity,
-                'dispo' => count($prod),
-                'hasWO'    => WorkOrder::where('asset_id', $product->id)
-                    ->where('for', $this->workOrder->id)
-                    ->exists(),
-            ];
+        $this->resetValidation();
+        $association = app(DistributionSelectionService::class)->reserve($this->workOrder->id, $this->assetId ?? 0, $this->serialInput, Auth::user());
+        $this->notice = 'Serial reservado: '.$association->product->serial;
+        $this->serialInput = '';
+        $this->dispatch('distribution-selection-changed', orderId: $this->workOrder->id);
+    }
 
-        });
-        // dd($this->products);
-        foreach ($this->products as $prod) {
-            if($prod['hasWO'] == false)
-            {
-                $this->stillalive = true;
-            }
-        }
-
-        if ($this->stillalive == false)
-        {
-            $this->workOrder->status_id = 5;
-            $this->workOrder->save();
+    #[On('distribution-camera-scanned')]
+    public function scanCamera(int $orderId, string $code): void
+    {
+        if ($orderId === $this->workOrder->id) {
+            $this->serialInput = $code;
+            $this->scanSerial();
         }
     }
 
-    public function getIsAllCheckedProperty()
+    public function removeSelection(int $associationId): void
     {
-        return collect($this->checkedProducts)->every(fn ($value) => $value);
+        app(DistributionSelectionService::class)->remove($this->workOrder->id, $associationId, Auth::user());
+        $this->resetValidation();
+        $this->notice = 'Selección retirada. El tubo conserva su historial.';
     }
 
-    public function updatedCheckedProducts()
+    public function saveAndNext(): void
     {
-        // dump($this->checkedProducts);
+        $this->workOrder = app(DistributionSelectionService::class)->confirm($this->workOrder->id, Auth::user());
+        $this->resetValidation();
+        $this->notice = 'Distribución confirmada con los seriales seleccionados.';
     }
 
-    public function allChecked()
+    // Preserve the existing shortage action; quantity is always calculated by the server.
+    public function CreateWO(int $assetId): void
     {
-        return collect($this->checkedProducts)->every(fn($v) => $v);
-    }
-
-    public function saveAndNext()
-    {
-        if (!$this->isAllChecked) {
-            session()->flash('error', 'Debes seleccionar todos los productos.');
-            return;
-        }else {
-            $this->moveDistributionProducts();
-            $this->workOrder->status_id = 6;
-            $this->workOrder->save();
-            session()->flash('done', 'Distribution Ready');
-            return redirect(request()->header('Referer'));
-        }
-
-    }
-
-    private function moveDistributionProducts(): void
-    {
-        $items = $this->workOrder->distributions()->withPivot('quantity')->get();
-
-        foreach ($items as $item) {
-            $quantity = (int) $item->pivot->quantity;
-
-            if ($quantity <= 0) {
-                continue;
-            }
-
-            $productIds = Products::where('asset_id', $item->id)
-                ->where('location_id', 4)
-                ->orderBy('id')
-                ->limit($quantity)
-                ->pluck('id');
-
-            if ($productIds->isNotEmpty()) {
-                Products::whereIn('id', $productIds)->update(['location_id' => 6]);
-            }
-        }
-    }
-
-    public function CreateWO($assetId, $neededQuantity)
-    {
-        // Buscar producto
-        $asset = Asset::find($assetId);
-
-        if (! $asset) {
-            session()->flash('error', 'Producto no encontrado.');
-            return;
-        }
-
-        // Evitar duplicados
-        $exists = WorkOrder::where('asset_id', $asset->id)
-            ->where('quant', $neededQuantity)
-            ->where('for', $this->workOrder->id)
-            ->exists();
-
-        if ($exists) {
-            session()->flash('error', "Ya existe una WorkOrder para este producto con la cantidad faltante.");
-            return;
-        }
-
-        if (WorkOrder::find($this->workOrder->id, 'for')->for != null) {
-            session()->flash('done', "The WorkOrder for {$asset->name} with {$neededQuantity} already exist.");
-        }else {
-            // Crear la WorkOrder
-            WorkOrder::create([
-                'name' => WorkOrderController::WOname('WO'),
-                'date' => Carbon::now()->addDay()->format('Y-m-d'),
-                'status_id' => '1',
-                'type_id' => '1',
-                'asset_id' => $asset->id,
-                'quant' => $neededQuantity,
-                'for' => $this->workOrder->id
-            ]);
-            // if ($this->stillalive == false) {
-            //     $this->workOrder->status_id = 5;
-            // }
-
-
-
-            // 🔑 Refrescar productos para ocultar el botón inmediatamente
-            $this->refreshProducts($this->workOrder);
-
-            session()->flash('done', "The WorkOrder for {$asset->name} with {$neededQuantity} unities has been created.");
-
-        }
-
+        $order = app(DistributionSelectionService::class)->createShortage($this->workOrder->id, $assetId, Auth::user());
+        $this->notice = 'Orden '.$order->name.' creada por '.$order->quant.' unidades faltantes.';
     }
 
     public function render()
     {
-        return view('livewire.work-order-distribution-editor');
+        $service = app(DistributionSelectionService::class);
+        $service->authorize(Auth::user());
+        $requirements = $service->requirements($this->workOrder);
+        $open = $service->orders()->whereKey($this->workOrder->id)->exists();
+        $selections = ($open ? $service->reservations($this->workOrder)
+            : WorkOrderProduct::where('work_order_id', $this->workOrder->id)->where('purpose', 'distribution')->where('state', 'completed'))
+            ->with('product.asset', 'distributionAsset')->get();
+        $models = $this->workOrder->distributions()->get()->map(function ($asset) use ($requirements, $selections, $service) {
+            $selected = $selections->filter(fn ($selection) => (int) $selection->product->asset_id === $asset->id)->count();
+            $available = $service->available()->where('asset_id', $asset->id)->count();
+
+            return ['id' => $asset->id, 'name' => $asset->name, 'quantity' => $requirements[$asset->id],
+                'selected' => $selected, 'pending' => max(0, $requirements[$asset->id] - $selected), 'available' => $available,
+                'shortage' => max(0, $requirements[$asset->id] - $selected - $available),
+                'hasWO' => WorkOrder::where('for', $this->workOrder->id)->where('asset_id', $asset->id)->exists()];
+        });
+        $complete = $models->isNotEmpty() && $models->every(fn ($model) => $model['selected'] === $model['quantity'])
+            && $selections->count() === array_sum($requirements);
+
+        return view('livewire.work-order-distribution-editor', compact('models', 'selections', 'complete', 'open'));
     }
 }

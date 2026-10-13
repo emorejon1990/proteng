@@ -63,7 +63,9 @@ class ProductsResource extends Resource
                     ->searchable()
                     ->preload(),
 
-                Checkbox::make('qualifiled'),
+                Checkbox::make('qualified')
+                    ->disabled()
+                    ->dehydrated(false),
 
                 Select::make('asset_id')
                     ->label('Product')

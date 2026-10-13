@@ -2,20 +2,25 @@
 
 namespace App\Livewire;
 
-use App\Http\Controllers\SerialController;
 use App\Models\Products;
 use App\Models\WorkOrder;
+use App\Services\ProductionAssemblyService;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class WorkOrderAssembleEditor extends Component
 {
+    #[Locked]
     public WorkOrder $workOrder;
 
+    #[Locked]
     public $productIds = [];
 
+    #[Locked]
     public $currentIndex = 0;
 
+    #[Locked]
     public $currentProduct;
 
     public $checkTest = false;
@@ -34,6 +39,7 @@ class WorkOrderAssembleEditor extends Component
     public function mount(WorkOrder $workOrder)
     {
         $this->workOrder = $workOrder;
+        app(ProductionAssemblyService::class)->checkOrder($workOrder, Auth::user());
         // dump($workOrder->id);
         $this->productIds = $workOrder->products()
             ->where(function ($query) {
@@ -48,6 +54,7 @@ class WorkOrderAssembleEditor extends Component
 
     public function loadCurrentProduct()
     {
+        app(ProductionAssemblyService::class)->authorize(Auth::user());
         $this->currentProduct = isset($this->productIds[$this->currentIndex])
             ? Products::find($this->productIds[$this->currentIndex]) : null;
         $this->assambled = (bool) $this->currentProduct?->assambled;
@@ -69,18 +76,15 @@ class WorkOrderAssembleEditor extends Component
         $this->serialInput = strtoupper(trim($this->serialInput));
         $this->validate();
 
-        $this->currentProduct = SerialController::assemble($this->currentProduct, [
-            'assambled' => $this->currentProduct->assambled,
-            'assambly_by' => $this->currentProduct->assambly_by,
-            'assambly_date' => $this->currentProduct->assambly_date,
-        ], $this->serialInput);
+        $this->currentProduct = app(ProductionAssemblyService::class)->assemble(
+            $this->workOrder->id, $this->currentProduct->id, $this->serialInput, $this->assambled, Auth::user()
+        );
 
         if ($this->currentIndex < count($this->productIds) - 1) {
             $this->currentIndex++;
             $this->loadCurrentProduct();
         } else {
-            $this->workOrder->wc_id = 2;
-            $this->workOrder->save();
+            $this->workOrder = $this->workOrder->fresh();
             session()->flash('done', '¡Done!');
             $this->dispatch('reload-page');
         }
@@ -88,6 +92,8 @@ class WorkOrderAssembleEditor extends Component
 
     public function render()
     {
+        app(ProductionAssemblyService::class)->authorize(Auth::user());
+
         return view('livewire.work-order-assemble-editor', [
             'total' => count($this->productIds),
             'current' => $this->currentIndex + 1,

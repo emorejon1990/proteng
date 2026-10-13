@@ -2,10 +2,10 @@
 
 namespace App\Filament\Pages;
 
+use App\Services\ProductionFillingService;
 use Filament\Pages\Page;
-use App\Models\WorkOrder;
-use Filament\Actions\Action;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
 
 class Filling extends Page
 {
@@ -31,11 +31,13 @@ class Filling extends Page
 
     public $workOrders;
 
+    public ?string $availabilityError = null;
+
     public static function canAccess(): bool
     {
         $user = Auth::user();
 
-        return $user && $user->hasRole(['Admin', 'Manager','Worker']);
+        return $user && $user->hasRole(['Admin', 'Manager', 'Worker']);
     }
 
     public static function shouldRegisterNavigation(): bool
@@ -46,9 +48,11 @@ class Filling extends Page
     public static function getNavigationBadge(): ?string
     {
 
-        return WorkOrder::with('products')
-            ->where('status_id', 3) // Asumiendo que '3' es "In Progress"
-            ->where('wc_id', 2)->count();
+        try {
+            return (string) app(ProductionFillingService::class)->orders()->count();
+        } catch (ValidationException $exception) {
+            return null;
+        }
     }
 
     public static function getNavigationBadgeColor(): ?string
@@ -63,9 +67,15 @@ class Filling extends Page
 
     public function mount(): void
     {
-        $this->workOrders = WorkOrder::with('products')
-            ->where('status_id', 3) // Asumiendo que '3' es "In Progress"
-            ->where('wc_id', 2)     // Filling
-            ->get();
+        abort_unless(static::canAccess(), 403);
+        try {
+            $this->workOrders = app(ProductionFillingService::class)->orders()->with('asset')->get();
+            if ($this->workOrders->isNotEmpty()) {
+                app(ProductionFillingService::class)->checkOrder($this->workOrders->first(), Auth::user());
+            }
+        } catch (ValidationException $exception) {
+            $this->workOrders = collect();
+            $this->availabilityError = collect($exception->errors())->flatten()->first();
+        }
     }
 }

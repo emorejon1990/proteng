@@ -2,160 +2,115 @@
 
 namespace App\Livewire;
 
-use App\Models\Asset;
 use App\Models\Products;
 use App\Models\WorkOrder;
+use App\Services\ProductionFillingService;
+use App\Services\RepairCycleService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 
 class WorkOrderFillingEditor extends Component
 {
+    #[Locked]
     public WorkOrder $workOrder;
 
-    public $productIds = [];
+    public string $serialInput = '';
 
-    public $currentIndex = 0;
+    #[Locked]
+    public ?int $selectedProductId = null;
 
-    public $currentProduct;
+    #[Locked]
+    public string $selectedSerial = '';
 
-    public $checkTest = false;
+    public array $currentProductData = ['weight' => null];
 
-    public bool $filled = false; // Agrega esta propiedad
+    public string $notice = '';
 
-    public $currentProductData = [
-        'weight' => null,
-    ];
-
-    protected $listeners = [
-        'pesoManualCambiado' => 'validatePeso',
-    ];
-
-    public $asset;
-
-    public $min;
-
-    public $max;
-
-    public function mount(WorkOrder $workOrder)
+    public function mount(WorkOrder $workOrder): void
     {
-        $this->asset = Asset::find($workOrder->asset_id);
-        $this->min = $this->asset->weight - $this->asset->weight_tolerance;
-        $this->max = $this->asset->weight + $this->asset->weight_tolerance;
-        // dd($this->min);
-
         $this->workOrder = $workOrder;
-        // dump($workOrder->id);
-        $this->productIds = $workOrder->products()
-            ->where(function ($query) {
-                $query->where('filled', false)
-                    ->orWhereNull('filled');
-            })
-            ->pluck('id')
-            ->toArray();
-        // dump($this->productIds);
-        $this->loadCurrentProduct();
+        app(ProductionFillingService::class)->checkOrder($workOrder->fresh(), Auth::user());
     }
 
-    public function loadCurrentProduct()
+    #[Computed]
+    public function currentProduct(): ?Products
     {
-        if (! isset($this->productIds[$this->currentIndex])) {
-            $this->currentProduct = null;
-
-            return;
-        }
-
-        $this->currentProduct = Products::find($this->productIds[$this->currentIndex])->fresh();
-        $this->filled = (bool) $this->currentProduct?->filled;
-
-        // Copiar datos del modelo al array editable
-        $this->currentProductData['weight'] = $this->currentProduct->weight;
+        return $this->selectedProductId === null ? null : Products::with('asset')->find($this->selectedProductId);
     }
 
-    public function saveAndNext()
+    public function scanSerial(): void
     {
-        if (! $this->currentProduct) {
-            return;
+        $this->resetSelection();
+        $product = app(ProductionFillingService::class)->select($this->workOrder->id, $this->serialInput, Auth::user());
+        $this->selectedProductId = $product->id;
+        $this->selectedSerial = $product->serial;
+        $this->serialInput = $product->serial;
+        unset($this->currentProduct);
+        $this->dispatch('filling-product-selected', orderId: $this->workOrder->id, productId: $product->id);
+    }
+
+    public function saveAndNext(): void
+    {
+        app(ProductionFillingService::class)->authorize(Auth::user());
+        if ($this->selectedProductId === null || strtoupper(trim($this->serialInput)) !== $this->selectedSerial) {
+            throw ValidationException::withMessages(['serialInput' => 'Escanea e identifica el tubo antes de guardar.']);
         }
-
-        // Asigna valores obligatorios
-        $this->currentProduct->fill_by = Auth::id();
-        $this->currentProduct->fill_date = now();
-        $this->currentProduct->filled = $this->filled;
-        $this->currentProduct->weight = $this->currentProductData['weight'];
-        $this->currentProduct->location_id = 2;
-
-        $this->validate([
-            'currentProduct.fill_by' => 'required|integer',
-            'currentProduct.fill_date' => 'required|date',
-            'currentProduct.filled' => 'required|boolean',
-            'currentProductData.weight' => [ // ⚠️ validar el array, no el modelo
-                'required',
-                'numeric',
-                function ($attribute, $value, $fail) {
-                    if ($value < $this->min || $value > $this->max) {
-                        $fail("Weight most be between {$this->min} and {$this->max}.");
-                    }
-                },
-            ],
-        ]);
-
-        $this->currentProduct->save();
-        $this->currentProduct->logHistory(
-            process: 'Filled',
-            description: 'Filled and Serial',
-            location: 'Filled Area'
+        $result = app(ProductionFillingService::class)->fill(
+            $this->workOrder->id, $this->selectedProductId, $this->selectedSerial,
+            $this->currentProductData['weight'] ?? null, Auth::user()
         );
+        $this->resetSelection();
+        $this->serialInput = '';
+        $this->notice = $result['completed'] ? 'Llenado completo. La orden pasó al área de espera por cinco días.' : 'Llenado guardado. Escanea el siguiente tubo.';
+        $this->workOrder = $this->workOrder->fresh();
+        $this->dispatch('filling-saved', orderId: $this->workOrder->id);
+    }
 
-        if ($this->currentIndex < count($this->productIds) - 1) {
-            $this->currentIndex++;
-            $this->loadCurrentProduct();
-        } else {
-            $this->workOrder->wc_id = 3;
-            $this->workOrder->wc_changed_at = now();
-            $this->workOrder->save();
-            session()->flash('done', '¡Done!');
-            $this->dispatch('reload-page');
+    public function receiveScaleWeight(mixed $weight, int $productId): void
+    {
+        app(ProductionFillingService::class)->authorize(Auth::user());
+        if ($this->selectedProductId !== $productId) {
+            return;
+        }
+        $product = app(ProductionFillingService::class)->select($this->workOrder->id, $this->selectedSerial, Auth::user());
+        $this->currentProductData['weight'] = $weight;
+        app(ProductionFillingService::class)->validateWeight($product, $weight);
+        $this->resetValidation('currentProductData.weight');
+    }
+
+    public function activateScale(): void
+    {
+        if ($this->selectedProductId !== null) {
+            $product = app(ProductionFillingService::class)->select($this->workOrder->id, $this->selectedSerial, Auth::user());
+            $this->dispatch('filling-product-selected', orderId: $this->workOrder->id, productId: $product->id);
         }
     }
 
-    public function updatedCurrentProductDataWeight($value)
+    private function resetSelection(): void
     {
-        $this->validateOnly('currentProductData.weight', [
-            'currentProductData.weight' => [
-                'required',
-                'numeric',
-                function ($attribute, $value, $fail) {
-                    if ($value < $this->min || $value > $this->max) {
-                        $fail("Weight most be between {$this->min} and {$this->max}.");
-                    }
-                },
-            ],
-        ]);
-    }
-
-    public function validatePeso($value)
-    {
-        $this->currentProductData['weight'] = $value;
-
-        $this->validateOnly('currentProductData.weight', [
-            'currentProductData.weight' => [
-                'required',
-                'numeric',
-                function ($attribute, $value, $fail) {
-                    if ($value < $this->min || $value > $this->max) {
-                        $fail("Weight most be between {$this->min} and {$this->max}.");
-                    }
-                },
-            ],
-        ]);
+        $this->selectedProductId = null;
+        $this->selectedSerial = '';
+        $this->currentProductData = ['weight' => null];
+        $this->notice = '';
+        $this->resetValidation();
+        unset($this->currentProduct);
+        $this->dispatch('filling-selection-cleared', orderId: $this->workOrder->id);
     }
 
     public function render()
     {
-        // dump($this->currentProduct);
+        app(ProductionFillingService::class)->authorize(Auth::user());
+        $service = app(ProductionFillingService::class);
+        $total = app(RepairCycleService::class)->isReview($this->workOrder)
+            ? app(RepairCycleService::class)->members($this->workOrder)->count()
+            : $this->workOrder->products()->count();
+        $filledCount = $total - $service->pendingProducts($this->workOrder)->count();
+
         return view('livewire.work-order-filling-editor', [
-            'total' => count($this->productIds),
-            'current' => $this->currentIndex + 1,
+            'total' => $total, 'filledCount' => $filledCount, 'pendingCount' => $total - $filledCount,
         ]);
     }
 }

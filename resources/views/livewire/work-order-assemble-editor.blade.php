@@ -1,4 +1,6 @@
 <div class="p-4 border rounded bg-white shadow space-y-4">
+    @error('workOrder')<p role="alert" class="text-red-600">{{ $message }}</p>@enderror
+    @error('assambled')<p role="alert" class="text-red-600">{{ $message }}</p>@enderror
 
     <h3 class="text-lg font-bold">
         Products {{ $current }}/{{ $total }}

@@ -56,7 +56,7 @@ function poolOrder(int $quantity): WorkOrder
 function exportPoolSerials(mixed $quantity, bool $authorized = true): Response
 {
     $user = Mockery::mock(User::class);
-    $user->shouldReceive('hasRole')->with(['Admin', 'Manager'])->andReturn($authorized);
+    $user->shouldReceive('hasRole')->with(['Admin', 'Manager', 'Worker'])->andReturn($authorized);
     $request = Request::create('/serials/export', 'POST', ['quantity' => $quantity]);
     $request->setUserResolver(fn () => $user);
 
