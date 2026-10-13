@@ -148,11 +148,7 @@ async function readLoop() {
 
                 const peso = parseFloat(cleaned);
                 if (!isNaN(peso)) {
-                    const input = document.querySelector('#product-weight');
-                    if (input) {
-                        input.value = peso;
-                        input.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
+                    deliverScaleWeight(peso);
                 }
 
                 // Reiniciar el buffer para el siguiente valor
@@ -173,6 +169,36 @@ async function readLoop() {
  * @name sendGrid
  * Iterates over the checkboxes and generates the command to set the LEDs.
  */
+// Route filling measurements to exactly one selected product; retain quality's input behavior.
+function deliverScaleWeight(peso) {
+    if (!Number.isFinite(peso)) return;
+    const qualityInputs = document.querySelectorAll('[data-quality-weight]');
+    if (document.querySelector('[data-quality-page]') || qualityInputs.length) {
+        const targets = Array.from(qualityInputs).filter(input => input.dataset.scaleActive === 'true');
+        if (targets.length !== 1) return;
+        const input = targets[0];
+        const componentId = input.closest('[wire\\:id]')?.getAttribute('wire:id');
+        if (!componentId || !window.Livewire) return;
+        window.Livewire.find(componentId)?.$call('receiveScaleWeight', peso, Number(input.dataset.productId));
+        return;
+    }
+    const fillingInputs = document.querySelectorAll('[data-filling-weight]');
+    if (document.querySelector('[data-filling-page]') || fillingInputs.length) {
+        const targets = Array.from(fillingInputs).filter(input => input.dataset.scaleActive === 'true');
+        if (targets.length !== 1) return;
+        const input = targets[0];
+        const componentId = input.closest('[wire\\:id]')?.getAttribute('wire:id');
+        if (!componentId || !window.Livewire) return;
+        window.Livewire.find(componentId).$call('receiveScaleWeight', peso, Number(input.dataset.productId));
+        return;
+    }
+    const input = document.querySelector('#product-weight');
+    if (input) {
+        input.value = peso;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+}
+
 function sendGrid() {
   // CODELAB: Generate the grid
 

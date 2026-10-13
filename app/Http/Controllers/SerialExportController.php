@@ -14,7 +14,7 @@ class SerialExportController extends Controller
 {
     public function __invoke(Request $request): Response
     {
-        abort_unless($request->user()?->hasRole(['Admin', 'Manager']), 403);
+        abort_unless($request->user()?->hasRole(['Admin', 'Manager','Worker']), 403);
 
         $quantity = (int) $request->validate([
             'quantity' => ['required', 'integer', 'min:1'],

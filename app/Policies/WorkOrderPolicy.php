@@ -4,7 +4,7 @@ namespace App\Policies;
 
 use App\Models\User;
 use App\Models\WorkOrder;
-use Illuminate\Auth\Access\Response;
+use App\Services\ProductionCatalog;
 
 class WorkOrderPolicy
 {
@@ -13,7 +13,7 @@ class WorkOrderPolicy
      */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['Admin','Manager','Worker']);
+        return $user->hasRole(['Admin', 'Manager', 'Worker']);
     }
 
     /**
@@ -37,7 +37,12 @@ class WorkOrderPolicy
      */
     public function update(User $user, WorkOrder $workOrder): bool
     {
-        return $workOrder->status_id == 1 || $workOrder->status_id == 2;
+        if ($workOrder->isReviewOrder()) {
+            return false;
+        }
+
+        return $user->hasRole(['Admin', 'Manager']) && in_array((int) $workOrder->status_id,
+            [app(ProductionCatalog::class)->id('new_order_status'), app(ProductionCatalog::class)->id('approved_order_status')], true);
     }
 
     /**

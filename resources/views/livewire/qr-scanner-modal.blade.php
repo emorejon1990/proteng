@@ -1,10 +1,24 @@
 <div
     x-data="{ isOpen: @entangle('isOpen') }"
     x-init="() => {
+        let activeScanner = null;
+        let starting = false;
+        const stopScanner = async () => {
+            const scanner = activeScanner;
+            activeScanner = null;
+            if (scanner) await scanner.stop().catch(console.error);
+        };
         $watch('isOpen', value => {
+            if (!value) {
+                stopScanner();
+                return;
+            }
             if (value) {
                 setTimeout(() => {
+                    if (!isOpen || starting || activeScanner) return;
+                    starting = true;
                     const html5QrCode = new Html5Qrcode('reader');
+                    let reading = false;
                     const qrConfig = {
                         fps: 10,
                         qrbox: 250,
@@ -18,13 +32,17 @@
                         { facingMode: 'environment' },
                         qrConfig,
                         (decodedText, decodedResult) => {
-                            Livewire.dispatch('code-scanned', { code: decodedText });
-                            html5QrCode.stop().catch(console.error);
+                            if (reading) return;
+                            reading = true;
+                            stopScanner().then(() => $wire.handleScannedCode(decodedText)).catch(console.error);
                         },
                         (errorMessage) => {
                             // Ignorar errores menores
                         }
-                    );
+                    ).then(() => {
+                        activeScanner = html5QrCode;
+                        if (!isOpen) stopScanner();
+                    }).catch(console.error).finally(() => { starting = false; });
                 }, 300); // Espera a que el DOM esté listo
             }
         })
@@ -50,6 +68,4 @@
 @push('scripts')
 <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 @endpush
-
-
 

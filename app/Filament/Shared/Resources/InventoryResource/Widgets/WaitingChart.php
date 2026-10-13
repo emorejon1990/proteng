@@ -3,6 +3,7 @@
 namespace App\Filament\Shared\Resources\InventoryResource\Widgets;
 
 use App\Models\Products;
+use App\Services\ProductionCatalog;
 use Filament\Widgets\ChartWidget;
 
 class WaitingChart extends ChartWidget
@@ -13,10 +14,10 @@ class WaitingChart extends ChartWidget
 
     protected function getData(): array
     {
-        $locationId = 2; // ← Cambia esto según tu necesidad o hazlo dinámico
+        $locationId = app(ProductionCatalog::class)->id('waiting_location');
 
         $data = Products::query()
-            ->whereHas('asset', fn($query) => $query->where('location_id', $locationId))
+            ->where('location_id', $locationId)
             ->selectRaw('asset_id, COUNT(*) as total')
             ->groupBy('asset_id')
             ->with('asset')

@@ -1,4 +1,5 @@
 <x-filament-panels::page>
+    @if ($availabilityError)<p role="alert" class="text-red-600">{{ $availabilityError }}</p>@endif
     <div class="flex flex-row">
         @foreach ($this->workOrders as $order)
             <div class="p-4 bg-white rounded shadow card" x-data="{ open: false }">

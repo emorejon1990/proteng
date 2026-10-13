@@ -2,32 +2,30 @@
 
 namespace App\Filament\Shared\Resources;
 
-use Filament\Forms;
-use Filament\Tables;
-use App\Models\Asset;
-use App\Models\WOType;
-use Filament\Forms\Get;
-use Filament\Forms\Set;
-use Filament\Forms\Form;
-use App\Models\WorkOrder;
-use Filament\Tables\Table;
-use Filament\Resources\Resource;
-use Filament\Tables\Actions\Action;
-use Illuminate\Support\Facades\Auth;
-use Filament\Forms\Components\Select;
-use Filament\Forms\Components\Section;
-use Filament\Forms\Components\Repeater;
-use Filament\Tables\Columns\TextColumn;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\DatePicker;
-use Filament\Tables\Columns\SelectColumn;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use Filament\Facades\Filament;
 use App\Filament\Manager\Resources\InvoiceResource;
+use App\Filament\Pages\ReviewOrders;
 use App\Filament\Shared\Resources\WorkOrderResource\Pages;
-use App\Filament\Shared\Resources\WorkOrderResource\RelationManagers;
 use App\Filament\Shared\Resources\WorkOrderResource\RelationManagers\DistributionsRelationManager;
+use App\Models\Asset;
+use App\Models\WorkOrder;
+use App\Services\ProductionCatalog;
+use App\Services\ReviewWorkOrderService;
+use App\Services\WorkOrderLifecycleService;
+use Filament\Facades\Filament;
+use Filament\Forms\Components\DatePicker;
+use Filament\Forms\Components\Repeater;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
+use Filament\Forms\Get;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Actions\Action;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Auth;
 
 class WorkOrderResource extends Resource
 {
@@ -62,7 +60,7 @@ class WorkOrderResource extends Resource
 
                     Select::make('type_id')
                         ->label('Type')
-                        ->relationship('type', 'name')
+                        ->relationship('type', 'name', modifyQueryUsing: fn (Builder $query) => $query->whereRaw('LOWER(TRIM(name)) <> ?', ['review']))
                         ->searchable()
                         ->live()
                         ->preload()
@@ -73,19 +71,20 @@ class WorkOrderResource extends Resource
                         ->relationship('customer', 'display_name')
                         ->searchable()
                         ->preload()
-                        ->required(fn (Get $get): bool => $get('type_id') == 2)
-                        ->visible(fn (Get $get): bool => $get('type_id') == 2),
+                        ->required(fn (Get $get): bool => (int) $get('type_id') === app(ProductionCatalog::class)->id('distribution_type'))
+                        ->visible(fn (Get $get): bool => (int) $get('type_id') === app(ProductionCatalog::class)->id('distribution_type')),
 
                     Select::make('asset_id')
-                        ->visible(fn (Get $get): bool => $get('type_id') != 2)
+                        ->visible(fn (Get $get): bool => (int) $get('type_id') !== app(ProductionCatalog::class)->id('distribution_type'))
                         ->label('Product')
                         ->relationship('asset', 'name')
                         ->searchable()
                         ->preload()
-                        ->required(),
+                        ->required(fn (Get $get): bool => (int) $get('type_id') !== app(ProductionCatalog::class)->id('distribution_type')),
 
-                    TextInput::make('quant')->numeric()->suffix('Units')
-                        ->visible(fn (Get $get): bool => $get('type_id') != 2),
+                    TextInput::make('quant')->numeric()->integer()->minValue(1)->suffix('Units')
+                        ->required(fn (Get $get): bool => (int) $get('type_id') !== app(ProductionCatalog::class)->id('distribution_type'))
+                        ->visible(fn (Get $get): bool => (int) $get('type_id') !== app(ProductionCatalog::class)->id('distribution_type')),
 
                     Repeater::make('workOrderAssets')
                         ->relationship('workOrderAssets') // <-- usa el hasMany del pivot-model
@@ -93,17 +92,19 @@ class WorkOrderResource extends Resource
                             Select::make('asset_id')
                                 ->label('Product')
                                 ->relationship('asset', 'name') // usa la relación asset() en el modelo pivote
+                                ->distinct()
                                 ->required(),
                             TextInput::make('quantity')
                                 ->label('Quantity')
                                 ->numeric()
+                                ->integer()->minValue(1)
                                 ->suffix('Units')
                                 ->required(),
                         ])
                         ->columns(2)
                         ->label('Products')
                         ->addActionLabel('Add Product')
-                        ->visible(fn (Get $get): bool => $get('type_id') == 2),
+                        ->visible(fn (Get $get): bool => (int) $get('type_id') === app(ProductionCatalog::class)->id('distribution_type')),
                 ])->columnSpan(2)->columns(2),
             ]);
     }
@@ -128,6 +129,8 @@ class WorkOrderResource extends Resource
                         default => 'secondary',
                     }),
                 TextColumn::make('type_name')->label('Type'),
+                TextColumn::make('review_receiving_open')->label('Review reception')
+                    ->formatStateUsing(fn ($state, WorkOrder $record) => $record->isReviewOrder() ? ($state ? 'Open' : 'Closed') : '—'),
             ])
             ->filters([
                 //
@@ -135,7 +138,12 @@ class WorkOrderResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->visible(function ($record): bool {
-                    return $record->status_id == 1;}),
+                        return ! $record->isReviewOrder() && (int) $record->status_id === app(ProductionCatalog::class)->id('new_order_status');
+                    }),
+                Action::make('manageReview')
+                    ->label('Gestionar Review')
+                    ->url(fn () => ReviewOrders::getUrl())
+                    ->visible(fn (WorkOrder $record): bool => $record->isReviewOrder()),
                 Action::make('createInvoice')
                     ->label('Create Invoice')
                     ->icon('heroicon-o-document-plus')
@@ -155,32 +163,42 @@ class WorkOrderResource extends Resource
                         ]);
                     })
                     ->visible(function ($record): bool {
-                        return $record->type_id == 2
-                            && $record->status_id == 6
+                        return (int) $record->type_id === app(ProductionCatalog::class)->id('distribution_type')
+                            && (int) $record->status_id === app(ProductionCatalog::class)->id('ready_order_status')
                             && $record->customer?->id
                             && Filament::getCurrentPanel()?->getId() === 'manager'
                             && Auth::user()?->hasRole(['Manager']);
                     }),
-                    Action::make('start')
-                        ->icon('heroicon-s-play')
-                        ->color('success')
-                        ->requiresConfirmation()
-                        ->action(function ($record) {
-                            $record->status_id = 3;
-                            $record->save();
-                        })
-                        ->visible(function ($record): bool {
-                        return $record->status_id == 2;}),
-                    Action::make('approved')
-                        ->icon('heroicon-s-hand-thumb-up')
-                        ->color('success')
-                        ->requiresConfirmation()
-                        ->action(function ($record) {
-                            $record->status_id = 2;
-                            $record->save();
-                        })
-                        ->visible(function ($record): bool {
-                        return $record->status_id == 1;}),
+                Action::make('start')
+                    ->icon('heroicon-s-play')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->action(function ($record) {
+                        if ($record->isReviewOrder()) {
+                            app(ReviewWorkOrderService::class)->start($record->id, Auth::user());
+
+                            return;
+                        }
+                        app(WorkOrderLifecycleService::class)->start($record->id, Auth::user());
+                    })
+                    ->visible(function ($record): bool {
+                        return ! $record->isReviewOrder() && (int) $record->status_id === app(ProductionCatalog::class)->id('approved_order_status');
+                    }),
+                Action::make('approved')
+                    ->icon('heroicon-s-hand-thumb-up')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->action(function ($record) {
+                        if ($record->isReviewOrder()) {
+                            app(ReviewWorkOrderService::class)->approve($record->id, Auth::user());
+
+                            return;
+                        }
+                        app(WorkOrderLifecycleService::class)->approve($record->id, Auth::user());
+                    })
+                    ->visible(function ($record): bool {
+                        return ! $record->isReviewOrder() && (int) $record->status_id === app(ProductionCatalog::class)->id('new_order_status');
+                    }),
             ])
             ->bulkActions([
                 Tables\Actions\BulkActionGroup::make([

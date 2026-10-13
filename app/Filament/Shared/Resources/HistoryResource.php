@@ -2,18 +2,15 @@
 
 namespace App\Filament\Shared\Resources;
 
-use Filament\Forms;
-use Filament\Tables;
+use App\Filament\Shared\Resources\HistoryResource\Pages;
 use App\Models\History;
+use Filament\Forms;
 use Filament\Forms\Form;
-use Filament\Tables\Table;
 use Filament\Resources\Resource;
+use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
-use Illuminate\Database\Eloquent\Builder;
-use App\Filament\Shared\Resources\HistoryResource\Pages;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
-use App\Filament\Shared\Resources\HistoryResource\RelationManagers;
+use Filament\Tables\Table;
 
 class HistoryResource extends Resource
 {
@@ -85,6 +82,7 @@ class HistoryResource extends Resource
                 // Usuario que realizó el cambio
                 TextColumn::make('user.name')
                     ->label('User')
+                    ->placeholder(fn ($record) => ($record?->metadata['automatic'] ?? false) ? 'Sistema' : '—')
                     ->sortable(),
 
                 // Descripción del proceso
@@ -96,7 +94,7 @@ class HistoryResource extends Resource
                 SelectFilter::make('product_id')
                     ->relationship('product', 'serial')
                     ->searchable()
-                    ->label('Product')
+                    ->label('Product'),
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),

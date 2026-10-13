@@ -2,7 +2,7 @@
 
 namespace App\Filament\Shared\Resources\InventoryResource\Widgets;
 
-use App\Models\Products;
+use App\Services\DistributionSelectionService;
 use Filament\Widgets\ChartWidget;
 
 class StockChart extends ChartWidget
@@ -13,10 +13,7 @@ class StockChart extends ChartWidget
 
     protected function getData(): array
     {
-        $locationId = 4; // ← Cambia esto según tu necesidad o hazlo dinámico
-
-        $data = Products::query()
-            ->whereHas('asset', fn($query) => $query->where('location_id', $locationId))
+        $data = app(DistributionSelectionService::class)->available()
             ->selectRaw('asset_id, COUNT(*) as total')
             ->groupBy('asset_id')
             ->with('asset')

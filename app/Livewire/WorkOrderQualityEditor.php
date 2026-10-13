@@ -2,173 +2,209 @@
 
 namespace App\Livewire;
 
-use App\Models\Asset;
-use Livewire\Component;
 use App\Models\Products;
 use App\Models\WorkOrder;
+use App\Services\ProductionQualityService;
+use App\Services\RepairCycleService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
+use Livewire\Component;
 
 class WorkOrderQualityEditor extends Component
 {
+    #[Locked]
     public WorkOrder $workOrder;
-    public $productIds = [];
-    public $currentIndex = 0;
-    public $currentProduct;
 
-    public $checkTest = false;
+    public string $serialInput = '';
 
-    public bool $qualified = false; // Agrega esta propiedad
+    #[Locked]
+    public ?int $selectedProductId = null;
 
-    public $currentProductData = [
-        'weight' => null,
-    ];
+    #[Locked]
+    public string $selectedSerial = '';
 
-    protected $listeners = [
-        'pesoManualCambiado' => 'validatePeso'
-    ];
+    public array $currentProductData = ['weight' => null];
 
-    public $asset;
-    public $min;
-    public $max;
+    #[Locked]
+    public ?array $measurement = null;
 
+    #[Locked]
+    public bool $confirmingRejection = false;
 
-    public function mount(WorkOrder $workOrder)
+    public string $notice = '';
+
+    public function mount(WorkOrder $workOrder): void
     {
-        $this->asset = Asset::find($workOrder->asset_id);
-        $this->min = $this->asset->weight - $this->asset->weight_tolerance;
-        $this->max = $this->asset->weight + $this->asset->weight_tolerance;
-        // dd($this->min);
-
         $this->workOrder = $workOrder;
-        // dump($workOrder->id);
-        $this->productIds = $workOrder->products()
-            ->where(function ($query) {
-                $query->where('qualified', false)
-                    ->where('location_id', '3')
-                    ->orWhereNull('qualified');
-            })
-        ->pluck('id')
-        ->toArray();
-        // dump($this->productIds);
-        $this->loadCurrentProduct();
+        app(ProductionQualityService::class)->checkOrder($workOrder->fresh(), Auth::user());
     }
 
-    public function loadCurrentProduct()
+    #[Computed]
+    public function currentProduct(): ?Products
     {
-        if (!isset($this->productIds[$this->currentIndex])) {
-            $this->currentProduct = null;
+        return $this->selectedProductId === null ? null : Products::with('asset')->find($this->selectedProductId);
+    }
+
+    public function scanSerial(): void
+    {
+        $this->clearSelection();
+        $product = app(ProductionQualityService::class)->select($this->workOrder->id, $this->serialInput, Auth::user());
+        $this->selectedProductId = $product->id;
+        $this->selectedSerial = $product->serial;
+        $this->serialInput = $product->serial;
+        unset($this->currentProduct);
+        $this->activateScale();
+    }
+
+    #[On('quality-camera-scanned')]
+    public function scanCamera(int $orderId, string $code): void
+    {
+        if ($orderId !== $this->workOrder->id) {
             return;
         }
-
-        $this->currentProduct = Products::find($this->productIds[$this->currentIndex])->fresh();
-        $this->qualified = (bool) $this->currentProduct?->qualified;
-
-        // Copiar datos del modelo al array editable
-        $this->currentProductData['weight'] = $this->currentProduct->f_weight;
+        $this->serialInput = $code;
+        $this->scanSerial();
     }
 
-    public function saveAndNext()
+    public function evaluateWeight(): void
     {
-        if (!$this->currentProduct) return;
-
-        // Asigna valores obligatorios
-        $this->currentProduct->quality_by = Auth::id();
-        $this->currentProduct->quality_date = now();
-        $this->currentProduct->qualified = $this->qualified;
-        $this->currentProduct->f_weight = $this->currentProductData['weight'];
-
-        if ($this->currentProduct->qualified == true) {
-            $this->currentProduct->location_id = 4;
-            $this->currentProduct->work_order_id = null;
-            $this->currentProduct->status_id = 6;
-        }else {
-            $this->currentProduct->location_id = 1;
-        }
-
-        $this->validate([
-            'currentProduct.quality_by' => 'required|integer',
-            'currentProduct.quality_date' => 'required|date',
-            'currentProduct.qualified' => 'required|boolean',
-            // 'currentProductData.weight' => [ // ⚠️ validar el array, no el modelo
-            //     // 'required',
-            //     'numeric',
-            //     function ($attribute, $value, $fail) {
-            //         if ($value < $this->min || $value > $this->max) {
-            //             $fail("1Final weight most be between {$this->min} and {$this->max}.");
-            //         }
-            //     },
-            // ],
-        ]);
-
-        $this->currentProduct->save();
-        $this->currentProduct->logHistory(
-            process: "Qualified",
-            description: "Qualified",
-            location: 'Quality Area'
+        $this->measurement = null;
+        $this->confirmingRejection = false;
+        $this->assertSelected();
+        $this->measurement = app(ProductionQualityService::class)->measure(
+            $this->workOrder->id, $this->selectedProductId, $this->selectedSerial,
+            $this->currentProductData['weight'] ?? null, Auth::user()
         );
+        $this->resetValidation();
+        // Freeze automatic readings until the operator explicitly weighs again.
+        $this->dispatch('quality-selection-cleared', orderId: $this->workOrder->id);
+    }
 
-        if ($this->currentIndex < count($this->productIds) - 1) {
-            $this->currentIndex++;
-            $this->loadCurrentProduct();
-        } else {
-            if ($this->workOrder->products()->exists()) {
-                $this->workOrder->wc_id = 3;
-            } else {
-                $this->workOrder->wc_id = null;
-                $this->workOrder->status_id = 6;
-                $this->workOrder->wc_changed_at = now();
-                if ($this->workOrder->for) {
-                    $wop = WorkOrder::find($this->workOrder->for);
-                    $wop->status_id = 3;
-                    $wop->save();
-                }
-            }
+    public function saveAndNext(): void
+    {
+        $this->assertSelected();
+        $result = app(ProductionQualityService::class)->complete(
+            $this->workOrder->id, $this->selectedProductId, $this->selectedSerial,
+            $this->currentProductData['weight'] ?? null, Auth::user()
+        );
+        $this->saved($result);
+    }
 
-            $this->workOrder->save();
-            session()->flash('done', '¡Done!');
-            $this->dispatch('reload-page');
+    public function requestReview(): void
+    {
+        $this->evaluateWeight();
+        if ($this->measurement['approved']) {
+            throw ValidationException::withMessages(['confirmation' => 'Este peso cumple la tolerancia. No corresponde enviarlo a revisión.']);
+        }
+        $this->confirmingRejection = true;
+    }
+
+    public function confirmReview(): void
+    {
+        $this->assertSelected();
+        if (! $this->confirmingRejection || ! $this->measurement || $this->measurement['approved']) {
+            throw ValidationException::withMessages(['confirmation' => 'Evalúa el peso y solicita confirmación antes de enviar a revisión.']);
+        }
+        $result = app(ProductionQualityService::class)->complete(
+            $this->workOrder->id, $this->selectedProductId, $this->selectedSerial,
+            $this->currentProductData['weight'] ?? null, Auth::user(), $this->measurement
+        );
+        $this->saved($result);
+    }
+
+    public function cancelReview(): void
+    {
+        app(ProductionQualityService::class)->authorize(Auth::user());
+        $this->confirmingRejection = false;
+        $this->resetValidation('confirmation');
+    }
+
+    public function weighAgain(): void
+    {
+        $this->assertSelected();
+        $this->currentProductData = ['weight' => null];
+        $this->measurement = null;
+        $this->confirmingRejection = false;
+        $this->resetValidation();
+        $this->activateScale();
+        $this->dispatch('quality-weigh-again', orderId: $this->workOrder->id);
+    }
+
+    public function updatedCurrentProductDataWeight(): void
+    {
+        $this->measurement = null;
+        $this->confirmingRejection = false;
+        $this->resetValidation();
+    }
+
+    public function receiveScaleWeight(mixed $weight, int $productId): void
+    {
+        app(ProductionQualityService::class)->authorize(Auth::user());
+        if ($this->selectedProductId !== $productId || $this->measurement !== null || $this->confirmingRejection) {
+            return;
+        }
+        $this->assertSelected();
+        app(ProductionQualityService::class)->measure($this->workOrder->id, $productId, $this->selectedSerial, $weight, Auth::user());
+        $this->currentProductData['weight'] = $weight;
+        $this->resetValidation('currentProductData.weight');
+    }
+
+    public function activateScale(): void
+    {
+        $this->assertSelected();
+        app(ProductionQualityService::class)->select($this->workOrder->id, $this->selectedSerial, Auth::user());
+        if ($this->measurement === null && ! $this->confirmingRejection) {
+            $this->dispatch('quality-product-selected', orderId: $this->workOrder->id, productId: $this->selectedProductId);
         }
     }
 
-
-    public function updatedCurrentProductDataWeight($value)
+    private function assertSelected(): void
     {
-        $this->validateOnly('currentProductData.weight', [
-            'currentProductData.weight' => [
-                'required',
-                'numeric',
-                function ($attribute, $value, $fail) {
-                    if ($value < $this->min || $value > $this->max) {
-                        $fail("2Final weight most be between {$this->min} and {$this->max}.");
-                    }
-                },
-            ],
-        ]);
+        app(ProductionQualityService::class)->authorize(Auth::user());
+        if ($this->selectedProductId === null || strtoupper(trim($this->serialInput)) !== $this->selectedSerial) {
+            throw ValidationException::withMessages(['serialInput' => 'Escanea e identifica el tubo antes de continuar.']);
+        }
     }
 
-    public function validatePeso($value)
+    private function clearSelection(): void
     {
-        $this->currentProductData['weight'] = $value;
+        $this->selectedProductId = null;
+        $this->selectedSerial = '';
+        $this->currentProductData = ['weight' => null];
+        $this->measurement = null;
+        $this->confirmingRejection = false;
+        $this->notice = '';
+        $this->resetValidation();
+        unset($this->currentProduct);
+        $this->dispatch('quality-selection-cleared', orderId: $this->workOrder->id);
+    }
 
-        $this->validateOnly('currentProductData.weight', [
-            'currentProductData.weight' => [
-                'required',
-                'numeric',
-                function ($attribute, $value, $fail) {
-                    if ($value < $this->min || $value > $this->max) {
-                        $fail("3Final weight most be between {$this->min} and {$this->max}.");
-                    }
-                },
-            ],
-        ]);
+    private function saved(array $result): void
+    {
+        $this->clearSelection();
+        $this->serialInput = '';
+        $this->workOrder = $this->workOrder->fresh();
+        $this->notice = $result['measurement']['approved'] ? 'Calidad aprobada. El tubo pasó a Stock.' : 'Rechazo confirmado. El tubo se incorporó a la orden '.$result['review_order']->name.'.';
+        if ($result['completed']) {
+            $this->notice .= ' Calidad de la orden completada.';
+        }
+        $this->dispatch('quality-saved', orderId: $this->workOrder->id);
     }
 
     public function render()
     {
-        return view('livewire.work-order-quality-editor', [
-            'total' => count($this->productIds),
-            'current' => $this->currentIndex + 1,
-            'values' => "Final weight most be between {$this->min} and {$this->max}."
-        ]);
+        $service = app(ProductionQualityService::class);
+        $service->authorize(Auth::user());
+        $total = app(RepairCycleService::class)->isReview($this->workOrder)
+            ? app(RepairCycleService::class)->members($this->workOrder)->count()
+            : Products::where(function ($query) {
+                $query->where('work_order_id', $this->workOrder->id)->orWhere('production_work_order_id', $this->workOrder->id);
+            })->count();
+        $pending = $service->pendingProducts($this->workOrder)->count();
+
+        return view('livewire.work-order-quality-editor', ['total' => $total, 'pendingCount' => $pending, 'completedCount' => $total - $pending]);
     }
 }

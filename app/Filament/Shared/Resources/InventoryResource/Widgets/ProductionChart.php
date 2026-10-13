@@ -2,8 +2,8 @@
 
 namespace App\Filament\Shared\Resources\InventoryResource\Widgets;
 
-use App\Models\Inventory;
 use App\Models\Products;
+use App\Services\ProductionCatalog;
 use Filament\Widgets\ChartWidget;
 
 class ProductionChart extends ChartWidget
@@ -12,14 +12,12 @@ class ProductionChart extends ChartWidget
 
     protected static ?int $sort = 2;
 
-
-
     protected function getData(): array
     {
-        $locationId = 1; // ← Cambia esto según tu necesidad o hazlo dinámico
+        $locationId = app(ProductionCatalog::class)->id('production_location');
 
         $data = Products::query()
-            ->whereHas('asset', fn($query) => $query->where('location_id', $locationId))
+            ->where('location_id', $locationId)
             ->selectRaw('asset_id, COUNT(*) as total')
             ->groupBy('asset_id')
             ->with('asset')
