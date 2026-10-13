@@ -9,7 +9,7 @@
                         fps: 10,
                         qrbox: 250,
                         formatsToSupport: [
-                            Html5QrcodeSupportedFormats.QR_CODE,
+                            {{-- Html5QrcodeSupportedFormats.QR_CODE, --}}
                             Html5QrcodeSupportedFormats.CODE_39
                         ]
                     };
