@@ -52,7 +52,7 @@ class AssetResource extends Resource
                 //
             ])
             ->recordUrl(
-                fn (Model $record): string => route('filament.admin.resources.assets.view', ['record' => $record]),
+                fn (Model $record): ?string => static::canView($record) ? static::getUrl('view', ['record' => $record]) : null,
             )
             ->actions([
                 Tables\Actions\EditAction::make(),

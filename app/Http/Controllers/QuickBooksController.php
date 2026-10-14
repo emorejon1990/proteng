@@ -6,6 +6,7 @@ use App\Filament\Pages\QuickBooks;
 use App\Models\QuickbooksToken;
 use App\Services\QuickBooksDataServiceFactory;
 use App\Services\QuickBooksDiagnostics;
+use Filament\Facades\Filament;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use QuickBooksOnline\API\DataService\DataService;
@@ -19,11 +20,22 @@ class QuickBooksController extends Controller
 
     private function returnUrl(Request $request): string
     {
+        // External routes have no active panel. Only accept a registered, authorized origin.
+        $panelId = $request->routeIs('quickbooks.connect')
+            ? $request->query('panel') : $request->session()->get('quickbooks.oauth.panel');
+        if (is_string($panelId) && ($panel = Filament::getPanels()[$panelId] ?? null)
+            && $request->user()?->canAccessPanel($panel)
+            && in_array(QuickBooks::class, $panel->getPages(), true) && QuickBooks::canAccess()) {
+            return QuickBooks::getUrl(panel: $panelId);
+        }
+
+        // Legacy direct requests did not carry panel context.
         return QuickBooks::getUrl(panel: $request->user()?->hasRole('Admin') ? 'admin' : 'manager');
     }
 
     public function connect(Request $request)
     {
+        $returnUrl = $this->returnUrl($request);
         try {
             $state = bin2hex(random_bytes(32));
             $ds = $this->makeDataService(['state' => $state]);
@@ -31,34 +43,36 @@ class QuickBooksController extends Controller
             $request->session()->put('quickbooks.oauth', [
                 'state' => $state, 'user_id' => $request->user()->getAuthIdentifier(),
                 'expires_at' => now()->addMinutes(10)->timestamp,
+                'panel' => is_string($request->query('panel')) ? $request->query('panel') : null,
             ]);
 
             return redirect()->away($url);
         } catch (\Exception $e) {
             QuickBooksDiagnostics::failure('connect', $e);
 
-            return redirect($this->returnUrl($request))->with('error', 'No se pudo iniciar la conexión con QuickBooks. Contacta al administrador.');
+            return redirect($returnUrl)->with('error', 'No se pudo iniciar la conexión con QuickBooks. Contacta al administrador.');
         }
     }
 
     public function callback(Request $request)
     {
+        $returnUrl = $this->returnUrl($request);
         $pending = $request->session()->get('quickbooks.oauth');
         $state = $request->input('state');
         if (! is_array($pending) || ! is_string($state)
             || ! hash_equals($pending['state'], $state)
             || $pending['expires_at'] < now()->timestamp
             || (string) $pending['user_id'] !== (string) $request->user()->getAuthIdentifier()) {
-            return redirect($this->returnUrl($request))->with('error', 'La autorización no es válida o ha vencido. Inicia la conexión de nuevo.');
+            return redirect($returnUrl)->with('error', 'La autorización no es válida o ha vencido. Inicia la conexión de nuevo.');
         }
         $request->session()->forget('quickbooks.oauth');
         if ($request->has('error')) {
-            return redirect($this->returnUrl($request))->with('error', 'La autorización de QuickBooks fue cancelada o rechazada.');
+            return redirect($returnUrl)->with('error', 'La autorización de QuickBooks fue cancelada o rechazada.');
         }
         $code = $request->input('code');
         $realm = $request->input('realmId');
         if (! is_string($code) || trim($code) === '' || ! is_string($realm) || ! preg_match('/^\d+$/', $realm)) {
-            return redirect($this->returnUrl($request))->with('error', 'QuickBooks devolvió una autorización incompleta.');
+            return redirect($returnUrl)->with('error', 'QuickBooks devolvió una autorización incompleta.');
         }
         try {
             $token = $this->makeDataService()->getOAuth2LoginHelper()->exchangeAuthorizationCodeForToken($code, $realm);
@@ -71,11 +85,11 @@ class QuickBooksController extends Controller
                 ]);
             });
 
-            return redirect($this->returnUrl($request))->with('success', 'QuickBooks conectado correctamente');
+            return redirect($returnUrl)->with('success', 'QuickBooks conectado correctamente');
         } catch (\Exception $e) {
             QuickBooksDiagnostics::failure('callback', $e);
 
-            return redirect($this->returnUrl($request))->with('error', 'No se pudo completar la conexión con QuickBooks. Inténtalo de nuevo o contacta al administrador.');
+            return redirect($returnUrl)->with('error', 'No se pudo completar la conexión con QuickBooks. Inténtalo de nuevo o contacta al administrador.');
         }
     }
 

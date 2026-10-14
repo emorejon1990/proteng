@@ -21,7 +21,8 @@ class ViewWorkOrder extends ViewRecord
             TextEntry::make('invoice.invoice_number')->label('Invoice'),
             TextEntry::make('installation.status'),
             TextEntry::make('installation.id')->label('View Installation')
-                ->url(fn ($record) => $record->installation ? InstallationResource::getUrl('view', ['record' => $record->installation->id]) : null),
+                ->url(fn ($record) => $record->installation && InstallationResource::canAccess() && InstallationResource::canView($record->installation)
+                    ? InstallationResource::getUrl('view', ['record' => $record->installation->id]) : null),
             RepeatableEntry::make('workOrderAssets')->schema([TextEntry::make('asset.name'), TextEntry::make('quantity')])->columns(2),
         ]);
     }

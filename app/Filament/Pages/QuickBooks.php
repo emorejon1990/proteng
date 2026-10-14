@@ -6,6 +6,7 @@ use App\Models\QuickbooksToken;
 use App\Services\QuickBooksDiagnostics;
 use App\Services\QuickBooksService;
 use Filament\Actions\Action;
+use Filament\Facades\Filament;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
@@ -40,7 +41,7 @@ class QuickBooks extends Page
             Action::make('connect')
                 ->label('Connect QuickBooks')
                 ->color('success')
-                ->url(url('/quickbooks/connect')) // tu ruta real
+                ->url(fn () => route('quickbooks.connect', ['panel' => Filament::getCurrentPanel()->getId()]))
                 ->openUrlInNewTab(),
 
             Action::make('loadCustomers')

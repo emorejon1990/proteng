@@ -2,27 +2,27 @@
 
 namespace App\Providers\Filament;
 
-use Filament\Pages;
-use Filament\Panel;
-use App\Models\User;
-use Filament\Widgets;
-use Filament\PanelProvider;
-use Filament\Enums\ThemeMode;
-use App\Http\Middleware\CheckRole;
-use Filament\Support\Colors\Color;
-use Filament\Navigation\NavigationItem;
+use App\Filament\Customer\Resources\InvoiceResource;
 use App\Filament\Pages\Auth\CustomLogin;
+use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\ForcePasswordChange;
+use Filament\Enums\ThemeMode;
 use Filament\Http\Middleware\Authenticate;
-use Illuminate\Session\Middleware\StartSession;
-use Illuminate\Cookie\Middleware\EncryptCookies;
 use Filament\Http\Middleware\AuthenticateSession;
-use App\Filament\Shared\Resources\InventoryResource;
-use Illuminate\Routing\Middleware\SubstituteBindings;
-use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Filament\Navigation\NavigationItem;
+use Filament\Pages;
+use Filament\Panel;
+use Filament\PanelProvider;
+use Filament\Support\Colors\Color;
+use Filament\Widgets;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
+use Illuminate\Cookie\Middleware\EncryptCookies;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
+use Illuminate\Routing\Middleware\SubstituteBindings;
+use Illuminate\Session\Middleware\StartSession;
+use Illuminate\View\Middleware\ShareErrorsFromSession;
 
 class CustomerPanelProvider extends PanelProvider
 {
@@ -51,7 +51,7 @@ class CustomerPanelProvider extends PanelProvider
                 Widgets\AccountWidget::class,
             ])
             ->middleware([
-                \App\Http\Middleware\ForcePasswordChange::class,
+                ForcePasswordChange::class,
                 EncryptCookies::class,
                 AddQueuedCookiesToResponse::class,
                 StartSession::class,
@@ -64,9 +64,10 @@ class CustomerPanelProvider extends PanelProvider
             ])
             ->navigationItems([
                 NavigationItem::make('My Invoices')
-                    ->url(fn () => InventoryResource::getUrl('dash'))
+                    ->url(fn () => InvoiceResource::getUrl('index'))
+                    ->visible(fn () => InvoiceResource::canAccess())
                     ->icon('heroicon-o-rectangle-group')
-                    ->sort('1')
+                    ->sort('1'),
             ])
             ->authMiddleware([
                 Authenticate::class,

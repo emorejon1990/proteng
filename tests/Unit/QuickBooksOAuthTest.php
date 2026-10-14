@@ -41,6 +41,29 @@ function pendingQuickBooks(User $user): array
     return ['quickbooks.oauth' => ['state' => 'test-state', 'user_id' => $user->id, 'expires_at' => now()->addMinutes(10)->timestamp]];
 }
 
+test('OAuth returns to an authorized originating panel instead of the initial role dashboard', function ($role, $panel) {
+    $user = User::factory()->create()->assignRole($role);
+    $this->actingAs($user)->get('/quickbooks/connect?panel='.$panel)->assertRedirect();
+    $state = session('quickbooks.oauth.state');
+    expect(session('quickbooks.oauth.panel'))->toBe($panel);
+    $this->get('/quickbooks/callback?state='.$state.'&error=access_denied&panel=admin')
+        ->assertRedirect('/'.$panel.'/quick-books')->assertSessionHas('error');
+    expect(session()->has('quickbooks.oauth'))->toBeFalse();
+})->with([['Admin', 'manager'], ['Manager', 'worker'], ['Admin', 'worker']]);
+
+test('OAuth origin cannot select an unauthorized or unregistered panel', function ($panel) {
+    $user = User::factory()->create()->assignRole('Manager');
+    $this->actingAs($user)->get('/quickbooks/connect?panel='.$panel)->assertRedirect();
+    $this->get('/quickbooks/callback?state='.session('quickbooks.oauth.state').'&error=access_denied')
+        ->assertRedirect('/manager/quick-books');
+})->with(['admin', 'auth', 'missing', 'https://example.test']);
+
+test('OAuth connection failures preserve a validated originating panel', function () {
+    config(['services.quickbooks.client_id' => null]);
+    $this->actingAs($this->user)->get('/quickbooks/connect?panel=manager')
+        ->assertRedirect('/manager/quick-books')->assertSessionHas('error');
+});
+
 test('runtime QuickBooks configuration has no environment reads', function () {
     foreach (['app/Http/Controllers/QuickBooksController.php', 'app/Services/QuickBooksService.php',
         'app/Services/QuickBooksDataServiceFactory.php', 'app/Http/Middleware/EnsureQuickBooksTokenIsValid.php',

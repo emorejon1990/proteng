@@ -9,6 +9,7 @@ use App\Models\Equipment;
 use App\Models\EquipmentInstallationStep;
 use App\Models\Installation;
 use App\Models\User;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
@@ -241,8 +242,9 @@ class InstallationResource extends Resource
             ])
             ->actions([
                 Tables\Actions\Action::make('viewInvoice')->label('View Invoice')
-                    ->visible(fn (Installation $record) => $record->workOrder?->invoice && auth()->user()?->can('view', $record->workOrder->invoice))
-                    ->url(fn (Installation $record) => InvoiceResource::getUrl('index', ['tableSearch' => $record->workOrder?->invoice?->quickbooks_id])),
+                    ->visible(fn (Installation $record) => in_array(InvoiceResource::class, Filament::getCurrentPanel()->getResources(), true) && InvoiceResource::canAccess() && $record->workOrder?->invoice && InvoiceResource::canView($record->workOrder->invoice))
+                    ->url(fn (Installation $record) => in_array(InvoiceResource::class, Filament::getCurrentPanel()->getResources(), true) && InvoiceResource::canAccess() && $record->workOrder?->invoice && InvoiceResource::canView($record->workOrder->invoice)
+                        ? InvoiceResource::getUrl('index', ['tableSearch' => $record->workOrder->invoice->quickbooks_id]) : null),
                 Tables\Actions\ViewAction::make()->modalWidth(MaxWidth::SevenExtraLarge),
                 Tables\Actions\EditAction::make()->modalWidth(MaxWidth::SevenExtraLarge),
             ])

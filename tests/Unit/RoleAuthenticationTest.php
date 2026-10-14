@@ -1,12 +1,19 @@
 <?php
 
 use App\Filament\Pages\Auth\CustomLogin;
+use App\Http\Middleware\CheckRole;
 use App\Models\User;
 use Filament\Facades\Filament;
+use Filament\Http\Middleware\Authenticate;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Schema;
+use Livewire\Component;
 use Livewire\Livewire;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 use Tests\TestCase;
 
 uses(TestCase::class);
@@ -79,8 +86,8 @@ test('authorized manual panel access passes authentication middleware', function
     $user = User::factory()->create()->assignRole($role);
     Filament::setCurrentPanel(Filament::getPanel($panel));
     $this->actingAs($user);
-    $request = Illuminate\Http\Request::create('/'.$panel);
-    $response = app(\Filament\Http\Middleware\Authenticate::class)->handle($request,
+    $request = Request::create('/'.$panel);
+    $response = app(Authenticate::class)->handle($request,
         fn () => response('allowed'));
     expect($response->getContent())->toBe('allowed');
 })->with([['Admin', 'manager'], ['Manager', 'worker']]);
@@ -117,16 +124,16 @@ test('authenticated login visits ignore intended and use the auth panel context'
 test('panel authorization is persistent for Livewire and does not bypass update routes', function () {
     foreach (['admin', 'manager', 'worker', 'customer'] as $panel) {
         expect(Filament::getPanel($panel)->getAuthMiddleware())
-            ->toContain(App\Http\Middleware\CheckRole::class);
+            ->toContain(CheckRole::class);
     }
     Filament::setCurrentPanel(Filament::getPanel('admin'));
     $this->actingAs(User::factory()->create()->assignRole('Worker'));
-    $request = Illuminate\Http\Request::create('/livewire/update', 'POST');
-    expect(fn () => app(App\Http\Middleware\CheckRole::class)->handle($request, fn () => response('allowed')))
-        ->toThrow(Symfony\Component\HttpKernel\Exception\HttpException::class);
+    $request = Request::create('/livewire/update', 'POST');
+    expect(fn () => app(CheckRole::class)->handle($request, fn () => response('allowed')))
+        ->toThrow(HttpException::class);
 });
 
-class PanelAuthorizationProbe extends \Livewire\Component
+class PanelAuthorizationProbe extends Component
 {
     public function render()
     {
@@ -137,7 +144,7 @@ class PanelAuthorizationProbe extends \Livewire\Component
 test('Livewire rechecks the original panel after the authenticated user changes', function () {
     Livewire::component('panel-authorization-probe', PanelAuthorizationProbe::class);
     $panel = Filament::getPanel('admin');
-    Illuminate\Support\Facades\Route::get('/admin/auth-probe',
+    Route::get('/admin/auth-probe',
         fn () => Livewire::mount('panel-authorization-probe'))
         ->middleware([...$panel->getMiddleware(), ...$panel->getAuthMiddleware()]);
     $admin = User::factory()->create()->assignRole('Admin');
@@ -161,10 +168,11 @@ test('shared login renders and guests can reach it from protected panels', funct
 });
 
 test('customers awaiting a password change can still logout', function () {
-    Illuminate\Support\Facades\Schema::table('users', function ($table) {
+    Schema::table('users', function ($table) {
         $table->boolean('must_change_password')->default(false);
     });
     $user = User::factory()->create(['must_change_password' => true])->assignRole('Customer');
-    $this->actingAs($user)->post('/customer/logout')->assertRedirect(url('/login'));
+    roleLogin($user)->assertHasNoErrors();
+    $this->actingAs($user)->post('/customer/logout', ['_token' => session()->token()])->assertRedirect(url('/login'));
     $this->assertGuest('web');
 });

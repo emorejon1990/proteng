@@ -11,6 +11,7 @@ use App\Models\WorkOrder;
 use App\Services\ProductionCatalog;
 use App\Services\ReviewWorkOrderService;
 use App\Services\WorkOrderLifecycleService;
+use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -144,10 +145,11 @@ class WorkOrderResource extends Resource
                 Action::make('manageReview')
                     ->label('Gestionar Review')
                     ->url(fn () => ReviewOrders::getUrl())
-                    ->visible(fn (WorkOrder $record): bool => $record->isReviewOrder()),
+                    ->visible(fn (WorkOrder $record): bool => $record->isReviewOrder() && ReviewOrders::canAccess()),
                 Action::make('viewInvoice')->label('View Invoice')
-                    ->visible(fn (WorkOrder $record) => Schema::hasColumn('invoices', 'work_order_id') && $record->invoice && auth()->user()?->can('view', $record->invoice))
-                    ->url(fn (WorkOrder $record) => InvoiceResource::getUrl('index', ['tableSearch' => $record->invoice?->quickbooks_id])),
+                    ->visible(fn (WorkOrder $record) => in_array(InvoiceResource::class, Filament::getCurrentPanel()->getResources(), true) && InvoiceResource::canAccess() && Schema::hasColumn('invoices', 'work_order_id') && $record->invoice && InvoiceResource::canView($record->invoice))
+                    ->url(fn (WorkOrder $record) => in_array(InvoiceResource::class, Filament::getCurrentPanel()->getResources(), true) && InvoiceResource::canAccess() && $record->invoice && InvoiceResource::canView($record->invoice)
+                        ? InvoiceResource::getUrl('index', ['tableSearch' => $record->invoice->quickbooks_id]) : null),
                 Action::make('start')
                     ->icon('heroicon-s-play')
                     ->color('success')
