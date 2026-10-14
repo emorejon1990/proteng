@@ -45,6 +45,11 @@ class CustomerSyncService
 
     public function sync(): void
     {
+        app(QuickBooksSyncLock::class)->run(fn () => $this->syncLocked());
+    }
+
+    private function syncLocked(): void
+    {
         $gateway = app(QuickBooksReadGateway::class);
         $customers = [];
         $startPosition = 1;
@@ -69,6 +74,7 @@ class CustomerSyncService
 
     public function import(array $data): Customer
     {
+        app(QuickBooksSyncLock::class)->assertOwned();
         if (empty($data['Id']) || empty($data['DisplayName'])) {
             throw new \RuntimeException('QuickBooks customer response is incomplete.');
         }

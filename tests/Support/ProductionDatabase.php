@@ -63,6 +63,8 @@ function traceAssociation(Products $product, WorkOrder $order, string $purpose =
 
 function setupTraceabilityDatabase(): void
 {
+    // A developer's cached config may retain APP_ENV; these fixtures always run in testing.
+    app()->instance('env', 'testing');
 
     config([
         'database.default' => 'sqlite', 'database.connections.sqlite.database' => ':memory:',

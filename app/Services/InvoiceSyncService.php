@@ -26,6 +26,14 @@ class InvoiceSyncService
     {
         $actor ??= auth()->user();
         abort_unless($actor?->hasRole('Admin') && ! $actor->hasRole('Customer'), 403);
+
+        return app(QuickBooksSyncLock::class)->run(fn () => $this->syncLocked($actor));
+    }
+
+    private function syncLocked(?User $actor): array
+    {
+        $actor ??= auth()->user();
+        abort_unless($actor?->hasRole('Admin') && ! $actor->hasRole('Customer'), 403);
         $summary = ['synced' => 0, 'failed' => 0];
         $this->itemCache = [];
         $seen = [];
@@ -89,6 +97,7 @@ class InvoiceSyncService
 
     public function import(array $p, string $realm): Invoice
     {
+        app(QuickBooksSyncLock::class)->assertOwned();
         $this->assertRealm($realm);
         $p = QuickBooksReadGateway::payload($p);
         QuickBooksReadGateway::entityRef($p['Id'] ?? null, ['entity' => 'Invoice']);
@@ -107,13 +116,14 @@ class InvoiceSyncService
         $storedPayload = json_decode(json_encode($p, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
         $unchanged = DB::transaction(function () use ($p, $realm, $storedPayload) {
             $invoice = Invoice::where('quickbooks_id', (string) $p['Id'])->lockForUpdate()->first();
-            if (! $invoice || $invoice->realm_id !== $realm || $invoice->raw_payload !== $storedPayload) {
+            if (! $invoice || $invoice->realm_id !== $realm || ! self::payloadMatches($invoice->raw_payload, $storedPayload)) {
                 return null;
             }
             if ($invoice->sync_status !== 'synced' || $invoice->sync_error !== null) {
                 $invoice->update(['sync_status' => 'synced', 'sync_error' => null]);
             }
             $invoice->events()->create(['event' => 'Invoice Unchanged', 'metadata' => ['quickbooks_id' => $invoice->quickbooks_id]]);
+            app(QuickBooksSyncLock::class)->assertOwned();
 
             return $invoice->fresh();
         });
@@ -150,21 +160,23 @@ class InvoiceSyncService
         }
 
         return DB::transaction(function () use ($p, $realm, $customer, $customerPayload, $lines, $storedPayload) {
+            app(QuickBooksSyncLock::class)->assertOwned();
             $customer ??= $this->customers->import($customerPayload);
             Customer::whereKey($customer->id)->lockForUpdate()->firstOrFail();
             $invoice = Invoice::where('quickbooks_id', (string) $p['Id'])->lockForUpdate()->first();
             // Another importer may have saved this same payload while Item reads were in flight.
-            if ($invoice && $invoice->realm_id === $realm && $invoice->raw_payload === $storedPayload) {
+            if ($invoice && $invoice->realm_id === $realm && self::payloadMatches($invoice->raw_payload, $storedPayload)) {
                 if ($invoice->sync_status !== 'synced' || $invoice->sync_error !== null) {
                     $invoice->update(['sync_status' => 'synced', 'sync_error' => null]);
                 }
                 $invoice->events()->create(['event' => 'Invoice Unchanged', 'metadata' => ['quickbooks_id' => $invoice->quickbooks_id]]);
+                app(QuickBooksSyncLock::class)->assertOwned();
 
                 return $invoice->fresh();
             }
             $new = ! $invoice;
             $invoice ??= new Invoice(['quickbooks_id' => (string) $p['Id']]);
-            $changed = $invoice->raw_payload !== $p;
+            $changed = ! self::payloadMatches($invoice->raw_payload, $p);
             $invoice->fill(['realm_id' => $realm, 'customer_id' => $customer->id, 'invoice_number' => $p['DocNumber'] ?? null,
                 'total' => $p['TotalAmt'], 'balance' => $p['Balance'],
                 'status' => strtolower(trim($p['PrivateNote'] ?? '')) === 'voided' ? 'void' : ($p['Balance'] > 0 ? 'open' : 'paid'),
@@ -201,9 +213,29 @@ class InvoiceSyncService
             }
             $invoice->save();
             $invoice->events()->create(['event' => $new ? 'Invoice Imported' : ($changed ? 'Invoice Updated' : 'Invoice Unchanged'), 'metadata' => ['quickbooks_id' => $invoice->quickbooks_id]]);
+            app(QuickBooksSyncLock::class)->assertOwned();
 
             return $invoice->fresh();
         }, 3);
+    }
+
+    /** JSON object key order is not meaningful (MySQL JSON can reorder it); line array order is. */
+    public static function payloadMatches(?array $stored, array $incoming): bool
+    {
+        $canonical = function ($value) use (&$canonical) {
+            if (! is_array($value)) {
+                return $value;
+            }
+            $value = array_map($canonical, $value);
+            if (! array_is_list($value)) {
+                ksort($value);
+            }
+
+            return $value;
+        };
+        $incoming = json_decode(json_encode($incoming, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+
+        return $stored !== null && $canonical($stored) === $canonical($incoming);
     }
 
     private function lineDetail(mixed $line, int $number): array

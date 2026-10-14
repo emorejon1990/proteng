@@ -10,6 +10,11 @@ class AssetSyncService
 
     public function sync(): void
     {
+        app(QuickBooksSyncLock::class)->run(fn () => $this->syncLocked());
+    }
+
+    private function syncLocked(): void
+    {
         for ($position = 1; ; $position += 100) {
             $page = $this->gateway->page('Item', $position);
             foreach ($page as $item) {
@@ -28,6 +33,7 @@ class AssetSyncService
                 $asset->quickbooks_active = filter_var($item['Active'] ?? true, FILTER_VALIDATE_BOOLEAN);
                 $asset->name = $item['Name'] ?? $item['FullyQualifiedName'] ?? 'Product';
                 $asset->description = $item['Description'] ?? $asset->description;
+                app(QuickBooksSyncLock::class)->assertOwned();
                 $asset->save();
             }
             if (count($page) < 100) {
