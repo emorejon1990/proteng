@@ -4,6 +4,7 @@ use App\Http\Controllers\InvoicePackingSlipController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\ProductSerialPreviewController;
 use App\Http\Controllers\QuickBooksController;
+use App\Http\Controllers\QuickBooksInvoiceDebugController;
 use App\Http\Controllers\QuickBooksInvoicePdfController;
 use App\Http\Controllers\SerialExportController;
 use App\Http\Middleware\AuthorizeQuickBooks;
@@ -52,6 +53,9 @@ Route::middleware(['auth', AuthorizeQuickBooks::class, 'quickbooks'])->group(fun
 });
 
 Route::middleware(['web', 'auth'])->group(function () {
+    Route::get('/quickbooks/invoice-debug', QuickBooksInvoiceDebugController::class)
+        ->name('quickbooks.invoice-debug');
+
     Route::post('/serials/export', SerialExportController::class)->name('serials.export');
 
     Route::get('/products/serials/preview', ProductSerialPreviewController::class)

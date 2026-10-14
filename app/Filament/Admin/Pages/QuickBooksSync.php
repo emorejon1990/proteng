@@ -31,6 +31,11 @@ class QuickBooksSync extends Page
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('downloadInvoiceDebug')
+                ->label('Download Invoice Debug')
+                ->visible(fn () => Auth::user()?->hasRole('Admin') && ! Auth::user()->hasRole('Customer'))
+                ->url(route('quickbooks.invoice-debug')),
+
             Action::make('syncCustomers')
                 ->label('Sync Customers')
                 ->action(function () {
