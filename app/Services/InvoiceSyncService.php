@@ -20,49 +20,63 @@ class InvoiceSyncService
         throw new \LogicException('Invoices must be created in QuickBooks.');
     }
 
-    public function sync(?User $actor = null): void
+    private ?array $itemCache = null;
+
+    public function sync(?User $actor = null): array
     {
         $actor ??= auth()->user();
         abort_unless($actor?->hasRole('Admin') && ! $actor->hasRole('Customer'), 403);
-        $realm = $this->gateway->realm();
-        $this->assertRealm($realm);
+        $summary = ['synced' => 0, 'failed' => 0];
+        $this->itemCache = [];
         $seen = [];
+        $currentId = null;
+        $process = function (array $payload) use (&$summary, &$seen, &$currentId) {
+            // A missing/invalid invoice identity makes the listing unsafe for reconciliation.
+            $id = QuickBooksReadGateway::entityRef($payload['Id'] ?? null, ['entity' => 'Invoice']);
+            $currentId = $id;
+            $seen[$id] = true;
+            try {
+                $this->import($payload, $this->gateway->realm());
+                $summary['synced']++;
+            } catch (InvoiceDataException $e) {
+                $this->failed($id, $e);
+                $summary['failed']++;
+            }
+            $currentId = null;
+        };
         try {
+            $realm = $this->gateway->realm();
+            $this->assertRealm($realm);
             for ($position = 1; ; $position += 100) {
                 $page = $this->gateway->page('Invoice', $position);
                 foreach ($page as $payload) {
-                    $seen[(string) ($payload['Id'] ?? '')] = true;
-                    try {
-                        $this->import($payload, $realm);
-                    } catch (\Throwable $e) {
-                        $this->failed($payload['Id'] ?? null, $e);
-                        throw $e;
-                    }
+                    $process($payload);
                 }
                 if (count($page) < 100) {
                     break;
                 }
             }
-            Invoice::where('realm_id', $realm)->each(function (Invoice $invoice) use ($seen, $realm) {
-                if (isset($seen[$invoice->quickbooks_id])) {
-                    return;
-                }
-                // Absence from a successful full query warrants a read verification, never deletion.
-                try {
-                    $this->import($this->gateway->find('Invoice', $invoice->quickbooks_id), $realm);
-                } catch (\Throwable $e) {
-                    $this->failed($invoice->quickbooks_id, $e);
-                    if ($invoice->work_order_id) {
-                        $invoice->update(['operation_status' => 'requires_review']);
-                        $invoice->events()->create(['event' => 'Invoice Source Unavailable', 'work_order_id' => $invoice->work_order_id,
-                            'metadata' => ['reason' => 'Missing from query and verification failed; review deletion, permissions or connection. Operation preserved.']]);
-                    }
+            // Only reconcile after a complete listing. API/database failures stop immediately.
+            Invoice::where('realm_id', $realm)->each(function (Invoice $invoice) use (&$seen, &$currentId, $process) {
+                if (! isset($seen[$invoice->quickbooks_id])) {
+                    $currentId = $invoice->quickbooks_id;
+                    $process($this->gateway->find('Invoice', $invoice->quickbooks_id));
                 }
             });
+            InvoiceEvent::create(['event' => $summary['failed'] ? 'Invoice Sync Partial' : 'Invoice Sync Completed', 'metadata' => $summary]);
+
+            return $summary;
         } catch (\Throwable $e) {
-            Log::error('Invoice synchronization failed', ['error' => $e->getMessage()]);
-            InvoiceEvent::create(['event' => 'Invoice Sync Failed', 'metadata' => ['error' => 'QuickBooks synchronization interrupted. Check server logs.']]);
+            Log::error('Invoice synchronization stopped', ['exception_type' => get_class($e)]);
+            try {
+                InvoiceEvent::create(['invoice_id' => $currentId ? Invoice::where('quickbooks_id', $currentId)->value('id') : null,
+                    'event' => 'Invoice Sync Stopped', 'metadata' => $summary + ['quickbooks_id' => $currentId, 'error' => 'Synchronization stopped. Review the connection, company and server diagnostics. Previous successful imports remain saved.']]);
+            } catch (\Throwable $auditError) {
+                Log::error('Unable to persist stopped synchronization event', ['exception_type' => get_class($auditError)]);
+            }
             throw $e;
+        } finally {
+            $this->itemCache = null;
         }
     }
 
@@ -76,31 +90,42 @@ class InvoiceSyncService
     public function import(array $p, string $realm): Invoice
     {
         $this->assertRealm($realm);
+        $p = QuickBooksReadGateway::payload($p);
+        QuickBooksReadGateway::entityRef($p['Id'] ?? null, ['entity' => 'Invoice']);
         if (empty($p['Id']) || ! isset($p['TotalAmt'], $p['Balance'], $p['TxnDate']) || ! isset($p['Line']) || ! is_array($p['Line']) || ! $p['Line']) {
-            throw new \RuntimeException('Incomplete invoice payload; previous data was preserved.');
+            throw new InvoiceDataException('Incomplete invoice payload; previous data was preserved.');
         }
         if (! is_numeric($p['TotalAmt']) || ! is_numeric($p['Balance'])) {
-            throw new \RuntimeException('Invoice totals are invalid; previous data was preserved.');
+            throw new InvoiceDataException('Invoice totals are invalid; previous data was preserved.');
         }
-        $ref = QuickBooksReadGateway::ref($p['CustomerRef'] ?? null);
-        if (! $ref) {
-            throw new \RuntimeException('Invoice has no QuickBooks customer.');
-        }
+        $ref = QuickBooksReadGateway::entityRef($p['CustomerRef'] ?? null, ['entity' => 'Customer']);
         $customer = Customer::where('quickbooks_id', $ref)->first();
-        if (! $customer) {
-            $customer = $this->customers->import($this->gateway->find('Customer', $ref));
+        $customerPayload = $customer ? null : $this->gateway->find('Customer', $ref);
+        if ($customerPayload !== null && (QuickBooksReadGateway::entityRef($customerPayload['Id'] ?? null) !== $ref || empty($customerPayload['DisplayName']))) {
+            throw new InvoiceDataException('Incomplete or mismatched customer response.', ['entity' => 'Customer']);
         }
         $lines = [];
         foreach ($p['Line'] as $number => $line) {
-            if (! is_array($line) || empty($line['DetailType']) || ! isset($line['Amount'])) {
-                throw new \RuntimeException('Incomplete line; previous data was preserved.');
+            if (! is_array($line) || empty($line['DetailType']) || (! isset($line['Amount']) && ($line['DetailType'] ?? '') !== 'DescriptionOnly')) {
+                throw new InvoiceDataException('Incomplete line; previous data was preserved.');
             }
             $detail = $line[$line['DetailType']] ?? [];
-            $itemId = QuickBooksReadGateway::ref($detail['ItemRef'] ?? null);
+            if (! is_array($detail) || ! is_numeric($line['Amount'] ?? 0)) {
+                throw new InvoiceDataException('Invalid line detail or amount.', ['line_index' => $number]);
+            }
+            $itemId = $line['DetailType'] === 'SalesItemLineDetail' && ($detail['ItemRef'] ?? null) !== null
+                ? QuickBooksReadGateway::entityRef($detail['ItemRef'] ?? null, ['entity' => 'Item', 'line_type' => 'SalesItemLineDetail', 'line_index' => $number]) : null;
             $itemType = null;
             $asset = null;
+            if ($line['DetailType'] === 'GroupLineDetail') {
+                $this->validateGroup($detail, $number);
+            }
             if ($itemId) {
-                $item = $this->gateway->find('Item', $itemId);
+                $this->gateway->realm();
+                $item = $this->itemCache[$itemId] ?? $this->gateway->find('Item', $itemId);
+                if ($this->itemCache !== null) {
+                    $this->itemCache[$itemId] = $item;
+                }
                 $itemType = $item['Type'] ?? null;
                 if (in_array($itemType, ['Inventory', 'NonInventory'], true)) {
                     $matches = Asset::where('quickbooks_id', $itemId)->limit(2)->get();
@@ -111,10 +136,11 @@ class InvoiceSyncService
                 'detail_type' => $line['DetailType'], 'quickbooks_item_id' => $itemId, 'item_type' => $itemType,
                 'asset_id' => $asset?->id, 'description' => $line['Description'] ?? null,
                 'quantity' => $detail['Qty'] ?? null, 'unit_price' => $detail['UnitPrice'] ?? null,
-                'amount' => $line['Amount'], 'tax_code' => QuickBooksReadGateway::ref($detail['TaxCodeRef'] ?? null), 'raw_payload' => $line];
+                'amount' => $line['Amount'] ?? 0, 'tax_code' => QuickBooksReadGateway::ref($detail['TaxCodeRef'] ?? null), 'raw_payload' => $line];
         }
 
-        return DB::transaction(function () use ($p, $realm, $customer, $lines) {
+        return DB::transaction(function () use ($p, $realm, $customer, $customerPayload, $lines) {
+            $customer ??= $this->customers->import($customerPayload);
             Customer::whereKey($customer->id)->lockForUpdate()->firstOrFail();
             $invoice = Invoice::where('quickbooks_id', (string) $p['Id'])->lockForUpdate()->first();
             $new = ! $invoice;
@@ -155,9 +181,7 @@ class InvoiceSyncService
                 $invoice->operation_status = $current === null || ! $current ? 'requires_review' : 'unclassified';
             }
             $invoice->save();
-            if ($new || $changed) {
-                $invoice->events()->create(['event' => $new ? 'Invoice Imported' : 'Invoice Updated']);
-            }
+            $invoice->events()->create(['event' => $new ? 'Invoice Imported' : ($changed ? 'Invoice Updated' : 'Invoice Unchanged'), 'metadata' => ['quickbooks_id' => $invoice->quickbooks_id]]);
 
             return $invoice->fresh();
         }, 3);
@@ -166,11 +190,43 @@ class InvoiceSyncService
     private function failed($id, \Throwable $e): void
     {
         $invoice = $id ? Invoice::where('quickbooks_id', $id)->first() : null;
-        $message = 'Synchronization failed; previous data preserved. Check connection and server logs.';
-        if ($invoice) {
-            $invoice->update(['sync_status' => 'failed', 'sync_error' => $message]);
+        $message = $e instanceof InvoiceDataException ? $e->getMessage() : 'Synchronization failed; previous data preserved.';
+        $context = $e instanceof InvoiceDataException ? $e->context : [];
+        DB::transaction(function () use ($invoice, $message, $id, $context) {
+            if ($invoice) {
+                $invoice->update(['sync_status' => 'failed', 'sync_error' => $message]);
+            }
+            InvoiceEvent::create(['invoice_id' => $invoice?->id, 'event' => 'Invoice Sync Skipped', 'metadata' => ['quickbooks_id' => $id, 'error' => $message] + $context]);
+        });
+        Log::error($message, ['quickbooks_id' => $id, 'exception_type' => get_class($e)] + $context);
+    }
+
+    private function validateGroup(array $detail, int $number, int $depth = 0): void
+    {
+        $context = ['entity' => 'Item', 'line_type' => 'GroupLineDetail', 'line_index' => $number];
+        if ($depth > 20) {
+            throw new InvoiceDataException('Group nesting exceeds the supported limit.', $context);
         }
-        InvoiceEvent::create(['invoice_id' => $invoice?->id, 'event' => 'Invoice Sync Failed', 'metadata' => ['quickbooks_id' => $id, 'error' => $message]]);
-        Log::error($message, ['quickbooks_id' => $id, 'exception' => $e->getMessage()]);
+        if (array_key_exists('GroupItemRef', $detail)) {
+            QuickBooksReadGateway::entityRef($detail['GroupItemRef'], $context);
+        }
+        $children = $detail['Line'] ?? [];
+        if (! is_array($children)) {
+            throw new InvoiceDataException('Malformed group lines.', $context);
+        }
+        foreach ($children as $child) {
+            if (! is_array($child) || ! is_string($child['DetailType'] ?? null)) {
+                throw new InvoiceDataException('Malformed group child.', $context);
+            }
+            $childDetail = $child[$child['DetailType']] ?? [];
+            if (! is_array($childDetail)) {
+                throw new InvoiceDataException('Malformed group child detail.', $context);
+            }
+            if ($child['DetailType'] === 'SalesItemLineDetail' && ($childDetail['ItemRef'] ?? null) !== null) {
+                QuickBooksReadGateway::entityRef($childDetail['ItemRef'], $context);
+            } elseif ($child['DetailType'] === 'GroupLineDetail') {
+                $this->validateGroup($childDetail, $number, $depth + 1);
+            }
+        }
     }
 }

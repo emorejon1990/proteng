@@ -15,6 +15,9 @@ class InvoiceRequirements
                 if ($line->detail_type === 'GroupLineDetail') {
                     $this->fail('Grouped items require administrative review.');
                 }
+                if (! in_array($line->detail_type, ['DiscountLineDetail', 'SubTotalLineDetail', 'DescriptionOnly'], true)) {
+                    $this->fail('Unsupported invoice line requires administrative review.');
+                }
 
                 continue;
             }

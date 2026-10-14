@@ -9,6 +9,7 @@ use Filament\Actions\Action;
 use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class QuickBooksSync extends Page
 {
@@ -46,17 +47,19 @@ class QuickBooksSync extends Page
                 ->action(function () {
                     abort_unless(Auth::user()?->hasRole('Admin'), 403);
                     try {
-                        app(InvoiceSyncService::class)->sync();
+                        $summary = app(InvoiceSyncService::class)->sync();
                     } catch (\Throwable $e) {
-                        report($e);
+                        // Query exceptions can contain full invoice bindings; keep diagnostics sanitized.
+                        Log::error('Invoice sync action stopped', ['exception_type' => get_class($e)]);
                         Notification::make()->title('Invoice sync failed')->body('Previous data was preserved. Review sync errors and the QuickBooks connection.')->danger()->send();
 
                         return;
                     }
 
                     Notification::make()
-                        ->title('Invoices synced successfully')
-                        ->success()
+                        ->title($summary['failed'] ? 'Invoice sync partially completed' : 'Invoices synced successfully')
+                        ->body($summary['synced'].' synchronized; '.$summary['failed'].' skipped. Review Invoice Sync Events.')
+                        ->status($summary['failed'] ? 'warning' : 'success')
                         ->send();
                 }),
 
@@ -77,9 +80,9 @@ class QuickBooksSync extends Page
                     app(CustomerSyncService::class)->sync();
                     abort_unless(Auth::user()?->hasRole('Admin'), 403);
                     try {
-                        app(InvoiceSyncService::class)->sync();
+                        $summary = app(InvoiceSyncService::class)->sync();
                     } catch (\Throwable $e) {
-                        report($e);
+                        Log::error('Invoice sync action stopped', ['exception_type' => get_class($e)]);
                         Notification::make()->title('Invoice sync failed')->body('Previous data was preserved. Review sync errors and the QuickBooks connection.')->danger()->send();
 
                         return;
@@ -87,8 +90,9 @@ class QuickBooksSync extends Page
                     app(AssetSyncService::class)->sync();
 
                     Notification::make()
-                        ->title('Customers + Invoices + Products synced successfully')
-                        ->success()
+                        ->title($summary['failed'] ? 'Sync partially completed' : 'Customers + Invoices + Products synced successfully')
+                        ->body($summary['synced'].' invoices synchronized; '.$summary['failed'].' skipped.')
+                        ->status($summary['failed'] ? 'warning' : 'success')
                         ->send();
                 }),
         ];

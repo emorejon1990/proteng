@@ -1,6 +1,7 @@
 <?php
 
 use App\Filament\Admin\Pages\InvoiceSyncEvents;
+use App\Filament\Admin\Pages\QuickBooksSync;
 use App\Filament\Manager\Resources\InvoiceResource\Pages\ListInvoices;
 use App\Models\Asset;
 use App\Models\Customer;
@@ -12,15 +13,18 @@ use App\Services\AssetSyncService;
 use App\Services\CustomerSyncService;
 use App\Services\DistributionSelectionService;
 use App\Services\InvoiceClassificationService;
+use App\Services\InvoiceDataException;
 use App\Services\InvoiceDocumentService;
 use App\Services\InvoiceSyncService;
 use App\Services\QuickBooksReadGateway;
 use App\Services\QuickBooksService;
+use Filament\Notifications\Notification;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Validation\ValidationException;
 use QuickBooksOnline\API\Data\IPPInvoice;
+use QuickBooksOnline\API\Data\IPPReferenceType;
 use QuickBooksOnline\API\DataService\DataService;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
@@ -254,14 +258,14 @@ it('marks voided invoices for review without deleting operations', function () {
     expect($invoice->fresh()->status)->toBe('void')->and($invoice->fresh()->operation_status)->toBe('sync_conflict')
         ->and($order->fresh()->status_id)->toBe(11)->and(WorkOrder::count())->toBe(1);
 });
-it('records missing linked invoices for review after a successful full query', function () {
+it('stops on unavailable source verification and preserves linked operations', function () {
     $invoice = importInvoice();
     classifyInvoice($invoice);
     User::find(1)->assignRole('Admin');
     $this->gateway->shouldReceive('page')->with('Invoice', 1)->andReturn([]);
     $this->gateway->shouldReceive('find')->with('Invoice', '500')->andThrow(new RuntimeException('Unavailable'));
-    app(InvoiceSyncService::class)->sync(User::find(1));
-    expect($invoice->fresh()->operation_status)->toBe('requires_review')->and($invoice->fresh()->sync_status)->toBe('failed')
+    expect(fn () => app(InvoiceSyncService::class)->sync(User::find(1)))->toThrow(RuntimeException::class);
+    expect($invoice->fresh()->operation_status)->toBe('created')->and($invoice->fresh()->sync_status)->toBe('synced')
         ->and(WorkOrder::count())->toBe(1)->and($invoice->lines()->count())->toBe(3);
 });
 it('blocks synchronization by Managers and Customers on the server', function () {
@@ -315,7 +319,7 @@ it('preserves operation data when synchronization fails and rolls back partial i
     classifyInvoice($invoice);
     User::find(1)->assignRole('Admin');
     $this->gateway->shouldReceive('page')->with('Invoice', 1)->andReturn([invoicePayload(['Line' => []])]);
-    expect(fn () => app(InvoiceSyncService::class)->sync(User::find(1)))->toThrow(RuntimeException::class);
+    expect(app(InvoiceSyncService::class)->sync(User::find(1)))->toBe(['synced' => 0, 'failed' => 1]);
     expect($invoice->fresh()->sync_status)->toBe('failed')->and($invoice->lines()->count())->toBe(3)->and($invoice->fresh()->operation_status)->toBe('created');
     DB::statement('CREATE TRIGGER fail_line BEFORE INSERT ON invoice_lines BEGIN SELECT RAISE(ABORT, "line failed"); END');
     expect(fn () => importInvoice(['TotalAmt' => 200]))->toThrow(QueryException::class);
@@ -354,4 +358,124 @@ it('rejects a company switch before reading another QuickBooks page', function (
     expect($gateway->realm())->toBe('realm-one');
     DB::table('quickbooks_tokens')->update(['realm_id' => 'realm-two']);
     expect(fn () => $gateway->page('Invoice', 101))->toThrow(RuntimeException::class);
+});
+
+it('normalizes supported reference representations', function ($reference) {
+    expect(QuickBooksReadGateway::entityRef($reference))->toBe('100');
+})->with([
+    'lowercase' => [['value' => '100']], 'uppercase' => [['Value' => '100']],
+    'string' => ['100'], 'integer' => [100],
+    'sdk' => [new IPPReferenceType(['value' => '100'])],
+]);
+
+it('rejects malformed entity references without exposing their contents', function ($reference) {
+    try {
+        QuickBooksReadGateway::entityRef($reference, ['entity' => 'Item', 'line_index' => 0]);
+        $this->fail('Expected invalid reference');
+    } catch (InvoiceDataException $e) {
+        expect($e->context)->toHaveKeys(['entity', 'line_index', 'reference_format']);
+        expect($e->getMessage())->toBe('Invalid QuickBooks reference; previous data preserved.');
+    }
+})->with([null, '', 'private-name', '100 ', true, 1.5, [['value' => ['value' => '100']]], [[]], [(object) ['value' => '100']]]);
+
+it('imports SDK object references and uppercase array references', function () {
+    $p = invoicePayload();
+    $p['CustomerRef'] = new IPPReferenceType(['value' => '10']);
+    $p['Line'][0]['SalesItemLineDetail']['ItemRef'] = new IPPReferenceType(['value' => '100']);
+    $p['Line'][1]['SalesItemLineDetail']['ItemRef'] = ['Value' => '200'];
+    expect(app(InvoiceSyncService::class)->import($p, 'realm-one')->lines[0]->asset_id)->toBe(31);
+});
+
+it('preserves sales lines without item references for administrative review', function () {
+    $p = invoicePayload();
+    $p['Line'][0]['SalesItemLineDetail']['ItemRef'] = null;
+    $invoice = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($invoice->lines[0]->quickbooks_item_id)->toBeNull()->and($invoice->lines[0]->asset_id)->toBeNull()
+        ->and($invoice->operation_status)->toBe('requires_review');
+});
+
+it('preserves discounts descriptions and groups without physical mappings', function () {
+    $p = invoicePayload();
+    $p['Line'][] = ['DetailType' => 'DiscountLineDetail', 'Amount' => 5, 'DiscountLineDetail' => ['DiscountPercent' => 5]];
+    $p['Line'][] = ['DetailType' => 'DescriptionOnly', 'Description' => 'Memo'];
+    $p['Line'][] = ['DetailType' => 'GroupLineDetail', 'Amount' => 100, 'GroupLineDetail' => ['GroupItemRef' => ['value' => '400'], 'Line' => [$p['Line'][0]]]];
+    $invoice = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($invoice->lines()->count())->toBe(6)->and($invoice->discount_total)->toEqual(5)
+        ->and($invoice->lines[5]->asset_id)->toBeNull()->and($invoice->lines[5]->raw_payload)->toBe($p['Line'][5])
+        ->and($invoice->operation_status)->toBe('requires_review');
+});
+
+it('skips representative invoice 1982 reference errors and continues with valid invoices', function () {
+    // Representative regression fixture; the real production payload is unavailable.
+    User::find(1)->assignRole('Admin');
+    $p = invoicePayload(['Id' => '1982']);
+    $p['Line'][0]['SalesItemLineDetail']['ItemRef'] = ['value' => 'private-invalid-reference'];
+    $this->gateway->shouldReceive('page')->with('Invoice', 1)->andReturn([$p, invoicePayload()]);
+    expect(app(InvoiceSyncService::class)->sync(User::find(1)))->toBe(['synced' => 1, 'failed' => 1]);
+    $event = InvoiceEvent::where('event', 'Invoice Sync Skipped')->firstOrFail();
+    expect($event->metadata)->toMatchArray(['quickbooks_id' => '1982', 'entity' => 'Item', 'line_index' => 0, 'line_type' => 'SalesItemLineDetail', 'reference_format' => 'invalid-value']);
+    expect(json_encode($event->metadata))->not->toContain('private-invalid-reference');
+    expect(InvoiceEvent::where('event', 'Invoice Sync Partial')->count())->toBe(1)
+        ->and(InvoiceEvent::where('event', 'Invoice Sync Completed')->count())->toBe(0);
+});
+
+it('stops on global item read failures and does not reconcile absent invoices', function () {
+    $invoice = importInvoice();
+    User::find(1)->assignRole('Admin');
+    $p = invoicePayload(['Id' => '1982']);
+    $p['Line'][0]['SalesItemLineDetail']['ItemRef'] = ['value' => '999'];
+    $this->gateway->shouldReceive('find')->with('Item', '999')->andThrow(new RuntimeException('Authentication or rate limit failure'));
+    $this->gateway->shouldNotReceive('find')->with('Invoice', '500');
+    $this->gateway->shouldReceive('page')->with('Invoice', 1)->andReturn([$p, invoicePayload(['Id' => '501'])]);
+    expect(fn () => app(InvoiceSyncService::class)->sync(User::find(1)))->toThrow(RuntimeException::class);
+    expect(Invoice::count())->toBe(1)->and($invoice->fresh()->sync_status)->toBe('synced')
+        ->and(InvoiceEvent::where('event', 'Invoice Sync Stopped')->count())->toBe(1);
+});
+
+it('reuses items within a run and clears the cache between runs', function () {
+    User::find(1)->assignRole('Admin');
+    $gateway = Mockery::mock(QuickBooksReadGateway::class);
+    $gateway->shouldReceive('realm')->andReturn('realm-one');
+    $gateway->shouldReceive('page')->with('Invoice', 1)->twice()->andReturn([invoicePayload(), invoicePayload(['Id' => '501'])]);
+    $gateway->shouldReceive('find')->with('Item', '100')->twice()->andReturn(['Id' => '100', 'Type' => 'Inventory']);
+    $gateway->shouldReceive('find')->with('Item', '200')->twice()->andReturn(['Id' => '200', 'Type' => 'Service']);
+    $this->instance(QuickBooksReadGateway::class, $gateway);
+    $service = app(InvoiceSyncService::class);
+    $service->sync(User::find(1));
+    $service->sync(User::find(1));
+    expect(InvoiceEvent::where('event', 'Invoice Unchanged')->count())->toBe(2);
+});
+
+it('rolls back a newly imported customer when invoice writes fail', function () {
+    $this->gateway->shouldReceive('find')->with('Customer', '11')->andReturn(['Id' => '11', 'DisplayName' => 'New buyer']);
+    DB::statement('CREATE TRIGGER fail_line BEFORE INSERT ON invoice_lines BEGIN SELECT RAISE(ABORT, "line failed"); END');
+    expect(fn () => importInvoice(['CustomerRef' => ['value' => '11']]))->toThrow(QueryException::class);
+    expect(Customer::where('quickbooks_id', '11')->exists())->toBeFalse()->and(Invoice::count())->toBe(0);
+});
+
+it('stops the batch on database failure and keeps previous invoice lines', function () {
+    $invoice = importInvoice();
+    User::find(1)->assignRole('Admin');
+    DB::statement('CREATE TRIGGER fail_line BEFORE INSERT ON invoice_lines BEGIN SELECT RAISE(ABORT, "line failed"); END');
+    $this->gateway->shouldReceive('page')->with('Invoice', 1)->andReturn([invoicePayload(['TotalAmt' => 200]), invoicePayload(['Id' => '501'])]);
+    expect(fn () => app(InvoiceSyncService::class)->sync(User::find(1)))->toThrow(QueryException::class);
+    expect($invoice->fresh()->total)->toBe('110.00')->and($invoice->lines()->count())->toBe(3)
+        ->and(Invoice::count())->toBe(1)->and(InvoiceEvent::where('event', 'Invoice Sync Stopped')->count())->toBe(1);
+});
+
+it('rejects malformed customer and nested group references', function () {
+    expect(fn () => importInvoice(['CustomerRef' => ['value' => 'bad']]))->toThrow(InvoiceDataException::class);
+    $p = invoicePayload();
+    $p['Line'][] = ['DetailType' => 'GroupLineDetail', 'Amount' => 10, 'GroupLineDetail' => ['GroupItemRef' => ['value' => ['value' => '400']]]];
+    expect(fn () => app(InvoiceSyncService::class)->import($p, 'realm-one'))->toThrow(InvoiceDataException::class);
+    expect(Invoice::count())->toBe(0);
+});
+
+it('shows a warning notification for a partial Filament synchronization', function () {
+    User::find(1)->assignRole('Admin');
+    $this->gateway->shouldReceive('page')->with('Invoice', 1)->andReturn([invoicePayload(['Line' => []]), invoicePayload(['Id' => '501'])]);
+    Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('admin'));
+    Livewire\Livewire::test(QuickBooksSync::class)->callAction('syncInvoices')
+        ->assertNotified(Notification::make()->title('Invoice sync partially completed')
+            ->body('1 synchronized; 1 skipped. Review Invoice Sync Events.')->warning());
 });

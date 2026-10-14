@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Invoice;
 use App\Models\QuickbooksToken;
 use QuickBooksOnline\API\Data\IPPInvoice;
+use QuickBooksOnline\API\Data\IPPReferenceType;
 
 /** Read-only accounting boundary. */
 class QuickBooksReadGateway
@@ -48,9 +49,10 @@ class QuickBooksReadGateway
 
     public function find(string $entity, string $id): array
     {
-        if (! in_array($entity, ['Invoice', 'Customer', 'Item'], true) || ! preg_match('/^\d+$/', $id)) {
-            throw new \RuntimeException('Invalid QuickBooks reference.');
+        if (! in_array($entity, ['Invoice', 'Customer', 'Item'], true)) {
+            throw new \InvalidArgumentException('Unsupported entity.');
         }
+        self::entityRef($id, ['entity' => $entity]);
         $ds = $this->qb->ds($this->realm());
         $result = $ds->FindById($entity, $id);
         $this->check($ds);
@@ -58,7 +60,12 @@ class QuickBooksReadGateway
             throw new \RuntimeException("QuickBooks {$entity} {$id} is unavailable.");
         }
 
-        return self::payload($result);
+        $payload = self::payload($result);
+        if ((string) ($payload['Id'] ?? '') !== $id) {
+            throw new \RuntimeException('QuickBooks returned a mismatched entity response.');
+        }
+
+        return $payload;
     }
 
     public function pdf(Invoice $invoice): string
@@ -101,8 +108,41 @@ class QuickBooksReadGateway
 
     public static function ref($value): ?string
     {
+        if ($value instanceof IPPReferenceType) {
+            $value = $value->value;
+        }
         $id = is_array($value) ? ($value['value'] ?? $value['Value'] ?? null) : $value;
+        if ($id === null || $id === '') {
+            if (is_array($value) && ! array_key_exists('value', $value) && ! array_key_exists('Value', $value)) {
+                throw new InvoiceDataException('Malformed QuickBooks reference.');
+            }
 
-        return $id === null || $id === '' ? null : (string) $id;
+            return null;
+        }
+        if (! is_string($id) && ! is_int($id)) {
+            throw new InvoiceDataException('Malformed QuickBooks reference.');
+        }
+
+        return (string) $id;
+    }
+
+    public static function entityRef($value, array $context = []): string
+    {
+        try {
+            $id = self::ref($value);
+            if ($id === null || ! preg_match('/^[0-9]+$/D', $id)) {
+                throw new InvoiceDataException('Invalid QuickBooks reference.');
+            }
+
+            return $id;
+        } catch (InvoiceDataException $e) {
+            $category = $value === null ? 'missing' : (is_array($value) ? 'array' : ($value instanceof IPPReferenceType ? 'sdk-reference' : gettype($value)));
+            if (is_array($value)) {
+                $candidate = $value['value'] ?? $value['Value'] ?? null;
+                $category = ! array_key_exists('value', $value) && ! array_key_exists('Value', $value) ? 'missing-value-key'
+                    : (is_array($candidate) || is_object($candidate) ? 'nested-value' : ($candidate === null || $candidate === '' ? 'empty-value' : 'invalid-value'));
+            }
+            throw new InvoiceDataException('Invalid QuickBooks reference; previous data preserved.', $context + ['reference_format' => $category]);
+        }
     }
 }
