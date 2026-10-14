@@ -1,6 +1,5 @@
 <?php
 
-use App\Filament\Pages\Auth\CustomLogin;
 use App\Http\Controllers\InvoicePackingSlipController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\ProductSerialPreviewController;
@@ -29,10 +28,11 @@ use Livewire\Volt\Volt;
 
 require __DIR__.'/auth.php';
 
-Route::get('/login', CustomLogin::class)->middleware('guest')->name('login');
+// Keep the legacy route name without overriding Filament's shared /login route.
+Route::redirect('/sign-in', '/login')->name('login');
 
 // Redirección después de login según rol
-Route::get('/', fn () => redirect('/'))->middleware(RedirectByRole::class);
+Route::get('/', fn () => abort(403))->middleware(RedirectByRole::class);
 
 Route::put('/product/{product}', [ProductsController::class, 'update'])->name('product.update');
 

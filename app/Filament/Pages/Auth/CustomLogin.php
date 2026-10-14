@@ -3,7 +3,6 @@
 namespace App\Filament\Pages\Auth;
 
 use Filament\Facades\Filament;
-use Illuminate\Support\Facades\Auth;
 use Filament\Pages\Auth\Login as BaseLogin;
 
 class CustomLogin extends BaseLogin
@@ -25,26 +24,15 @@ class CustomLogin extends BaseLogin
         return false; // 👈 oculta el brandLogo por defecto
     }
 
-    protected function getRedirectUrl(): string
+    public function mount(): void
     {
-        $user = Auth::user();
+        if (Filament::auth()->check()) {
+            session()->forget('url.intended');
+            $this->redirect(Filament::auth()->user()->getPanelUrl());
 
-        if ($user->hasRole('Admin')) {
-            return route('filament.admin.pages.dashboard');
+            return;
         }
 
-        if ($user->hasRole('Manager')) {
-            return route('filament.manager.pages.dashboard');
-        }
-
-        if ($user->hasRole('Worker')) {
-            return route('filament.worker.pages.dashboard');
-        }
-
-        if ($user->hasRole('Customer')) {
-            return route('filament.customer.pages.dashboard');
-        }
-
-        abort(403);
+        parent::mount();
     }
 }

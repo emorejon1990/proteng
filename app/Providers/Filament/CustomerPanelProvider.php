@@ -61,7 +61,6 @@ class CustomerPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                CheckRole::class,
             ])
             ->navigationItems([
                 NavigationItem::make('My Invoices')
@@ -71,7 +70,8 @@ class CustomerPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ])
+                CheckRole::class,
+            ], isPersistent: true)
             ->defaultThemeMode(ThemeMode::Light)
             ->darkMode(false);
     }

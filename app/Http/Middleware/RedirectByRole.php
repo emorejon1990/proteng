@@ -22,18 +22,6 @@ class RedirectByRole
             return redirect('/login');
         }
 
-        if ($user->hasRole('Admin')) {
-            return redirect()->to('/admin');
-        } elseif ($user->hasRole('Manager')) {
-            return redirect()->to('/manager');
-        } elseif ($user->hasRole('Worker')) {
-            return redirect()->to('/worker');
-        } elseif ($user->hasRole('Customer')) {
-            return redirect()->to('/customer');
-        } elseif ($user->hasRole('Inst_Manager')) {
-            return redirect()->to('/customer');
-        }
-
-        return $next($request);
+        return redirect()->to($user->getPanelUrl());
     }
 }

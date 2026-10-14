@@ -66,9 +66,14 @@ class User extends Authenticatable implements FilamentUser
 
     public function canAccessPanel(Panel $panel): bool
     {
-        // return str_ends_with($this->email, '@proteng.com') && $this->hasVerifiedEmail();
-        // return str_ends_with($this->email, '@proteng.com');
-        return true;
+        return match ($panel->getId()) {
+            'admin' => $this->hasRole('Admin'),
+            'manager' => $this->hasAnyRole(['Admin', 'Manager']),
+            'worker' => $this->hasAnyRole(['Admin', 'Manager', 'Worker']),
+            'customer' => $this->hasAnyRole(['Customer', 'Inst_Manager']),
+            'auth' => $this->hasAnyRole(['Admin', 'Manager', 'Worker', 'Customer', 'Inst_Manager']),
+            default => false,
+        };
     }
 
     protected static function booted()
@@ -82,14 +87,20 @@ class User extends Authenticatable implements FilamentUser
 
     public function getPanelUrl(): string
     {
-        return match ($this->getRoleNames()->first()) {
-            'Admin' => Filament::getPanel('admin')->getUrl(),
-            'Manager' => Filament::getPanel('manager')->getUrl(),
-            'Worker' => Filament::getPanel('worker')->getUrl(),
-            'Customer' => Filament::getPanel('customer')->getUrl(),
-            'Inst_Manager' => Filament::getPanel('customer')->getUrl(),
-            default => url('/'),
-        };
+        // Highest privilege determines the initial destination, independently of role order.
+        foreach ([
+            'Admin' => 'admin',
+            'Manager' => 'manager',
+            'Worker' => 'worker',
+            'Customer' => 'customer',
+            'Inst_Manager' => 'customer',
+        ] as $role => $panel) {
+            if ($this->hasRole($role)) {
+                return Filament::getPanel($panel)->getUrl();
+            }
+        }
+
+        abort(403, 'No authorized panel.');
     }
 
     public function customer()

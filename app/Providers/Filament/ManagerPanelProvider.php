@@ -61,7 +61,6 @@ class ManagerPanelProvider extends PanelProvider
                 SubstituteBindings::class,
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
-                CheckRole::class,
             ])
             ->navigationItems([
                 NavigationItem::make('Inventory')
@@ -71,7 +70,8 @@ class ManagerPanelProvider extends PanelProvider
             ])
             ->authMiddleware([
                 Authenticate::class,
-            ])
+                CheckRole::class,
+            ], isPersistent: true)
             ->defaultThemeMode(ThemeMode::Light)
             ->darkMode(false);
     }

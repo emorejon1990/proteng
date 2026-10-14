@@ -26,6 +26,7 @@ class AuthPanelProvider extends PanelProvider
     {
         return $panel
             ->id('auth')
+            ->authGuard('web')
             ->path('')                 // 👈 SIN prefijo
             ->login(CustomLogin::class)
             ->passwordReset()

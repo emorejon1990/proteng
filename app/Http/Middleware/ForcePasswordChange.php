@@ -21,7 +21,7 @@ class ForcePasswordChange
             return $next($request);
         }
 
-        if ($request->routeIs('filament.auth.auth.logout') || $request->routeIs('logout')) {
+        if ($request->routeIs('filament.*.auth.logout') || $request->routeIs('logout')) {
             return $next($request);
         }
 
