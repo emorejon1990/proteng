@@ -10,6 +10,7 @@ class ProductionCatalog
     private const ENTRIES = [
         'production_type' => ['wo_type', ['production', 'producction']],
         'distribution_type' => ['wo_type', ['distribution']],
+        'installation_type' => ['wo_type', ['installation']],
         'distribution_location' => ['locations', ['distribution']],
         'assemble_center' => ['work_centers', ['assemble', 'assembly']],
         'production_location' => ['locations', ['production']],

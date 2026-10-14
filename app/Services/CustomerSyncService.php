@@ -2,14 +2,12 @@
 
 namespace App\Services;
 
+use App\Mail\CustomerAccountCreated;
 use App\Models\Customer;
 use App\Models\User;
-use App\Mail\CustomerAccountCreated;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Str;
 use QuickBooksOnline\API\Facades\Customer as QBCustomer;
-use App\Services\QuickBooksService;
 
 class CustomerSyncService
 {
@@ -32,7 +30,7 @@ class CustomerSyncService
         $customer = Customer::updateOrCreate(
             ['quickbooks_id' => $qbCustomer->Id],
             [
-                'display_name'  => $qbCustomer->DisplayName ?? $qbCustomer->GivenName ?? 'Cliente',
+                'display_name' => $qbCustomer->DisplayName ?? $qbCustomer->GivenName ?? 'Cliente',
                 'email' => $qbCustomer->PrimaryEmailAddr->Address ?? null,
                 'phone' => $qbCustomer->PrimaryPhone->FreeFormNumber ?? null,
             ]
@@ -47,15 +45,13 @@ class CustomerSyncService
 
     public function sync(): void
     {
-        $ds = $this->qb->ds();
+        $gateway = app(QuickBooksReadGateway::class);
         $customers = [];
         $startPosition = 1;
         $pageSize = 1000;
 
         do {
-            $page = $ds->Query(
-                "SELECT * FROM Customer WHERE Active IN (true, false) ORDERBY Id STARTPOSITION {$startPosition} MAXRESULTS {$pageSize}"
-            ) ?? [];
+            $page = $gateway->page('Customer', $startPosition, $pageSize);
 
             foreach ($page as $customer) {
                 $customers[] = $customer;
@@ -65,32 +61,51 @@ class CustomerSyncService
         } while (count($page) === $pageSize);
 
         foreach ($customers as $qbCustomer) {
-            $customer = Customer::updateOrCreate(
-                ['quickbooks_id' => $qbCustomer->Id],
-                [
-                    'display_name'  => $qbCustomer->DisplayName,
-                    'email' => $qbCustomer->PrimaryEmailAddr->Address ?? null,
-                    'phone' => $qbCustomer->PrimaryPhone->FreeFormNumber ?? null,
-                ]
-            );
+            $customer = $this->import($qbCustomer);
 
             // $this->createUser($customer);
         }
+    }
+
+    public function import(array $data): Customer
+    {
+        if (empty($data['Id']) || empty($data['DisplayName'])) {
+            throw new \RuntimeException('QuickBooks customer response is incomplete.');
+        }
+        $fields = ['display_name' => $data['DisplayName']];
+        foreach (['BillAddr' => 'billing_address', 'ShipAddr' => 'shipping_address'] as $source => $target) {
+            if (array_key_exists($source, $data)) {
+                $fields[$target] = $data[$source];
+            }
+        }
+        if (array_key_exists('PrimaryEmailAddr', $data)) {
+            $fields['email'] = $data['PrimaryEmailAddr']['Address'] ?? null;
+        }
+        if (array_key_exists('PrimaryPhone', $data)) {
+            $fields['phone'] = $data['PrimaryPhone']['FreeFormNumber'] ?? null;
+        }
+        if (array_key_exists('Active', $data)) {
+            $fields['active'] = filter_var($data['Active'], FILTER_VALIDATE_BOOLEAN);
+        }
+
+        return Customer::updateOrCreate(['quickbooks_id' => (string) $data['Id']], $fields);
     }
 
     /* ----------------- USERS ----------------- */
 
     protected function createUser(Customer $customer): void
     {
-        if (! $customer->email) return;
+        if (! $customer->email) {
+            return;
+        }
 
         $password = 'Abc12345678*';
 
         $user = User::firstOrCreate(
             ['email' => $customer->email],
             [
-                'name'                 => $customer->display_name,
-                'password'             => Hash::make($password),
+                'name' => $customer->display_name,
+                'password' => Hash::make($password),
                 'must_change_password' => true,
             ]
         );

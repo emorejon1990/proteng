@@ -2,20 +2,16 @@
 
 namespace App\Filament\Shared\Resources;
 
-use Filament\Forms;
-use Filament\Tables;
-use App\Models\Asset;
-use Filament\Forms\Form;
-use Filament\Tables\Table;
-use Filament\Resources\Resource;
-use Filament\Tables\Columns\TextColumn;
-use Illuminate\Database\Eloquent\Model;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\RichEditor;
-use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\SoftDeletingScope;
 use App\Filament\Shared\Resources\AssetResource\Pages;
-use App\Filament\Shared\Resources\AssetResource\RelationManagers;
+use App\Models\Asset;
+use Filament\Forms\Components\RichEditor;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Form;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Model;
 
 class AssetResource extends Resource
 {
@@ -32,6 +28,8 @@ class AssetResource extends Resource
         return $form
             ->schema([
                 TextInput::make('name'),
+                TextInput::make('quickbooks_id')->label('QuickBooks Item ID')->numeric()->unique(ignoreRecord: true)
+                    ->helperText('Local mapping. Invoice synchronization verifies the Item type before using this Asset.'),
                 TextInput::make('weight'),
                 TextInput::make('weight_tolerance'),
                 RichEditor::make('description'),
@@ -43,6 +41,9 @@ class AssetResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('name'),
+                TextColumn::make('quickbooks_id')->label('QuickBooks Item ID')->searchable(),
+                TextColumn::make('quickbooks_item_type'),
+                TextColumn::make('quickbooks_active')->badge(),
                 TextColumn::make('weight'),
                 TextColumn::make('weight_tolerance'),
                 TextColumn::make('description')->html()->limit(50, end: ' (more)'),
@@ -52,7 +53,7 @@ class AssetResource extends Resource
             ])
             ->recordUrl(
                 fn (Model $record): string => route('filament.admin.resources.assets.view', ['record' => $record]),
-                )
+            )
             ->actions([
                 Tables\Actions\EditAction::make(),
             ])

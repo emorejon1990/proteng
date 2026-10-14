@@ -11,7 +11,6 @@ use App\Models\WorkOrder;
 use App\Services\ProductionCatalog;
 use App\Services\ReviewWorkOrderService;
 use App\Services\WorkOrderLifecycleService;
-use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
@@ -26,6 +25,8 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class WorkOrderResource extends Resource
 {
@@ -60,7 +61,7 @@ class WorkOrderResource extends Resource
 
                     Select::make('type_id')
                         ->label('Type')
-                        ->relationship('type', 'name', modifyQueryUsing: fn (Builder $query) => $query->whereRaw('LOWER(TRIM(name)) <> ?', ['review']))
+                        ->relationship('type', 'name', modifyQueryUsing: fn (Builder $query) => $query->whereNotIn(DB::raw('LOWER(TRIM(name))'), ['review', 'installation']))
                         ->searchable()
                         ->live()
                         ->preload()
@@ -138,37 +139,15 @@ class WorkOrderResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make()
                     ->visible(function ($record): bool {
-                        return ! $record->isReviewOrder() && (int) $record->status_id === app(ProductionCatalog::class)->id('new_order_status');
+                        return ! $record->isReviewOrder() && ! $record->isInstallationOrder() && (int) $record->status_id === app(ProductionCatalog::class)->id('new_order_status');
                     }),
                 Action::make('manageReview')
                     ->label('Gestionar Review')
                     ->url(fn () => ReviewOrders::getUrl())
                     ->visible(fn (WorkOrder $record): bool => $record->isReviewOrder()),
-                Action::make('createInvoice')
-                    ->label('Create Invoice')
-                    ->icon('heroicon-o-document-plus')
-                    ->url(function ($record): string {
-                        $items = $record->workOrderAssets
-                            ->map(fn ($item) => [
-                                'asset_id' => $item->asset_id,
-                                'qty' => $item->quantity,
-                                'price' => 0,
-                            ])
-                            ->values()
-                            ->toArray();
-
-                        return InvoiceResource::getUrl('create', [
-                            'customer_id' => $record->customer?->id,
-                            'items' => $items,
-                        ]);
-                    })
-                    ->visible(function ($record): bool {
-                        return (int) $record->type_id === app(ProductionCatalog::class)->id('distribution_type')
-                            && (int) $record->status_id === app(ProductionCatalog::class)->id('ready_order_status')
-                            && $record->customer?->id
-                            && Filament::getCurrentPanel()?->getId() === 'manager'
-                            && Auth::user()?->hasRole(['Manager']);
-                    }),
+                Action::make('viewInvoice')->label('View Invoice')
+                    ->visible(fn (WorkOrder $record) => Schema::hasColumn('invoices', 'work_order_id') && $record->invoice && auth()->user()?->can('view', $record->invoice))
+                    ->url(fn (WorkOrder $record) => InvoiceResource::getUrl('index', ['tableSearch' => $record->invoice?->quickbooks_id])),
                 Action::make('start')
                     ->icon('heroicon-s-play')
                     ->color('success')
@@ -182,7 +161,7 @@ class WorkOrderResource extends Resource
                         app(WorkOrderLifecycleService::class)->start($record->id, Auth::user());
                     })
                     ->visible(function ($record): bool {
-                        return ! $record->isReviewOrder() && (int) $record->status_id === app(ProductionCatalog::class)->id('approved_order_status');
+                        return ! $record->isReviewOrder() && ! $record->isInstallationOrder() && (int) $record->status_id === app(ProductionCatalog::class)->id('approved_order_status');
                     }),
                 Action::make('approved')
                     ->icon('heroicon-s-hand-thumb-up')
@@ -197,7 +176,7 @@ class WorkOrderResource extends Resource
                         app(WorkOrderLifecycleService::class)->approve($record->id, Auth::user());
                     })
                     ->visible(function ($record): bool {
-                        return ! $record->isReviewOrder() && (int) $record->status_id === app(ProductionCatalog::class)->id('new_order_status');
+                        return ! $record->isReviewOrder() && ! $record->isInstallationOrder() && (int) $record->status_id === app(ProductionCatalog::class)->id('new_order_status');
                     }),
             ])
             ->bulkActions([
@@ -222,6 +201,7 @@ class WorkOrderResource extends Resource
             'index' => Pages\ListWorkOrders::route('/'),
             'create' => Pages\CreateWorkOrder::route('/create'),
             'edit' => Pages\EditWorkOrder::route('/{record}/edit'),
+            'view' => Pages\ViewWorkOrder::route('/{record}'),
         ];
     }
 }

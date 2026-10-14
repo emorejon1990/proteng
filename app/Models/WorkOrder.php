@@ -18,6 +18,27 @@ class WorkOrder extends Model
 
     public const REVIEW_CAPACITY = 50;
 
+    public function invoice()
+    {
+        return $this->hasOne(Invoice::class);
+    }
+
+    public function installation()
+    {
+        return $this->hasOne(Installation::class);
+    }
+
+    public function isInstallationOrder(): bool
+    {
+        $configured = config('production.catalog_ids.installation_type');
+        if ($configured && (int) $this->type_id === (int) $configured) {
+            return true;
+        }
+
+        return Schema::hasTable('wo_type') && DB::table('wo_type')->where('id', $this->type_id)
+            ->whereRaw('LOWER(TRIM(name)) = ?', ['installation'])->exists();
+    }
+
     protected $casts = [
         'review_receiving_open' => 'boolean',
         'review_closed_at' => 'datetime',

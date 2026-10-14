@@ -15,6 +15,9 @@ class CreateWorkOrder extends CreateRecord
     {
         $order = new WorkOrder;
         $order->forceFill(['type_id' => $data['type_id'] ?? null]);
+        if ($order->isInstallationOrder()) {
+            throw ValidationException::withMessages(['data.type_id' => 'Create Installation orders through Invoice classification with explicit equipment and staff.']);
+        }
         if ($order->isReviewOrder()) {
             throw ValidationException::withMessages([
                 'data.type_id' => 'Las órdenes Review se crean al incorporar rechazos de calidad.',

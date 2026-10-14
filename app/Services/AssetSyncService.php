@@ -6,37 +6,33 @@ use App\Models\Asset;
 
 class AssetSyncService
 {
-    public function __construct(
-        protected QuickBooksService $qb
-    ) {}
+    public function __construct(private QuickBooksReadGateway $gateway) {}
 
     public function sync(): void
     {
-        $ds = $this->qb->ds();
-        $items = $ds->Query("SELECT * FROM Item where Type='Inventory'") ?? [];
-
-        foreach ($items as $qbItem) {
-            $quickbooksId = (string) ($qbItem->Id ?? '');
-
-            if ($quickbooksId === '' || Asset::where('quickbooks_id', $quickbooksId)->exists()) {
-                continue;
+        for ($position = 1; ; $position += 100) {
+            $page = $this->gateway->page('Item', $position);
+            foreach ($page as $item) {
+                // Preserve legacy auto-import only for validated inventory goods.
+                if (($item['Type'] ?? null) !== 'Inventory' || empty($item['Id'])) {
+                    continue;
+                }
+                $asset = Asset::where('quickbooks_id', (string) $item['Id'])->first();
+                if (! $asset) {
+                    $asset = new Asset;
+                    $asset->weight = 0;
+                    $asset->weight_tolerance = 0;
+                }
+                $asset->quickbooks_id = (string) $item['Id'];
+                $asset->quickbooks_item_type = $item['Type'];
+                $asset->quickbooks_active = filter_var($item['Active'] ?? true, FILTER_VALIDATE_BOOLEAN);
+                $asset->name = $item['Name'] ?? $item['FullyQualifiedName'] ?? 'Product';
+                $asset->description = $item['Description'] ?? $asset->description;
+                $asset->save();
             }
-
-            $asset = new Asset;
-            $asset->quickbooks_id = $quickbooksId;
-
-            $asset->name = $qbItem->Name ?? $qbItem->FullyQualifiedName ?? 'Producto';
-            $asset->description = $qbItem->Description ?? $qbItem->PurchaseDesc ?? null;
-
-            if (! $asset->exists) {
-                $asset->weight = 0;
-                $asset->weight_tolerance = 0;
+            if (count($page) < 100) {
+                break;
             }
-
-            $asset->weight = 0;
-            $asset->weight_tolerance = 0;
-
-            $asset->save();
         }
     }
 }

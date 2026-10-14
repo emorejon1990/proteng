@@ -37,7 +37,7 @@ class WorkOrderPolicy
      */
     public function update(User $user, WorkOrder $workOrder): bool
     {
-        if ($workOrder->isReviewOrder()) {
+        if ($workOrder->isReviewOrder() || $workOrder->isInstallationOrder()) {
             return false;
         }
 

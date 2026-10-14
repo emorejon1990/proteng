@@ -2,23 +2,35 @@
 
 namespace App\Filament\Customer\Resources;
 
-use Filament\Forms;
-use Filament\Tables;
-use Filament\Resources\Resource;
-use Illuminate\Database\Eloquent\Model;
-use App\Models\Invoice;
 use App\Filament\Customer\Concerns\ScopesByCustomer;
 use App\Filament\Customer\Resources\InvoiceResource\Pages;
+use App\Models\Invoice;
+use Filament\Forms;
+use Filament\Resources\Resource;
+use Filament\Tables;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
 
 class InvoiceResource extends Resource
 {
     use ScopesByCustomer;
 
+    public static function getEloquentQuery(): Builder
+    {
+        $customer = auth()->user()?->customer;
+        abort_unless($customer, 403, 'Customer profile not found.');
+
+        return parent::getEloquentQuery()->where('customer_id', $customer->id);
+    }
+
     protected static ?string $model = Invoice::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-receipt-percent';
+
     protected static ?string $navigationLabel = 'Invoices';
+
     protected static ?string $navigationGroup = 'Billing';
+
     protected static ?int $navigationSort = 1;
 
     public static function canCreate(): bool
@@ -86,9 +98,9 @@ class InvoiceResource extends Resource
                 Tables\Actions\ViewAction::make(),
 
                 Tables\Actions\Action::make('pdf')
-                ->label('Download PDF')
-                ->icon('heroicon-o-arrow-down-tray')
-                ->url(fn (\App\Models\Invoice $record) => route('invoices.pdf', $record), shouldOpenInNewTab: true),
+                    ->label('Download PDF')
+                    ->icon('heroicon-o-arrow-down-tray')
+                    ->url(fn (Invoice $record) => route('invoices.pdf', $record), shouldOpenInNewTab: true),
             ])
             ->bulkActions([]);
     }
@@ -97,7 +109,7 @@ class InvoiceResource extends Resource
     {
         return [
             'index' => Pages\ListInvoices::route('/'),
-            'view'  => Pages\ViewInvoice::route('/{record}'),
+            'view' => Pages\ViewInvoice::route('/{record}'),
         ];
     }
 }

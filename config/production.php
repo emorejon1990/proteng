@@ -5,6 +5,7 @@ return [
     'catalog_ids' => [
         'production_type' => env('PRODUCTION_TYPE_ID'),
         'distribution_type' => env('PRODUCTION_DISTRIBUTION_TYPE_ID'),
+        'installation_type' => env('PRODUCTION_INSTALLATION_TYPE_ID'),
         'distribution_location' => env('PRODUCTION_DISTRIBUTION_LOCATION_ID'),
         'assemble_center' => env('PRODUCTION_ASSEMBLE_CENTER_ID'),
         'production_location' => env('PRODUCTION_LOCATION_ID'),

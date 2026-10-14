@@ -1,0 +1,91 @@
+<?php
+
+namespace App\Services;
+
+use App\Http\Controllers\WorkOrderController;
+use App\Models\Equipment;
+use App\Models\Invoice;
+use App\Models\User;
+use App\Models\WorkOrder;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
+
+class InvoiceClassificationService
+{
+    public function __construct(private ProductionCatalog $catalog, private InvoiceRequirements $requirements, private InstallationService $installations) {}
+
+    public function classify(int $id, string $type, ?User $actor, array $configuration = []): WorkOrder
+    {
+        abort_unless($actor?->hasRole(['Admin', 'Manager']) && ! $actor->hasRole('Customer'), 403);
+        if (! in_array($type, ['distribution', 'installation'], true)) {
+            $this->fail('Choose Distribution or Installation.');
+        }
+
+        return DB::transaction(function () use ($id, $type, $actor, $configuration) {
+            $invoice = Invoice::whereKey($id)->lockForUpdate()->firstOrFail();
+            Gate::forUser($actor)->authorize('classify', $invoice);
+            if ($invoice->operation_type || $invoice->work_order_id || $invoice->classified_at) {
+                $this->fail('This invoice already has an operation.');
+            }
+            if ($invoice->sync_status !== 'synced' || ! $invoice->last_synced_at || $invoice->status === 'void') {
+                $this->fail('Sync a valid invoice before classifying.');
+            }
+            if (! $invoice->customer?->quickbooks_id) {
+                $this->fail('A local QuickBooks customer is required.');
+            }
+            $requirements = $this->requirements->resolve($invoice);
+            if ($type === 'installation') {
+                $equipment = Equipment::whereKey($configuration['equipment_id'] ?? null)->lockForUpdate()->first();
+                if (! $equipment || ! $equipment->installationTemplateSteps()->exists()) {
+                    $this->fail('Select equipment with configured installation steps.');
+                }
+                foreach (['inst_manager_user_id' => 'Inst_Manager', 'worker_user_id' => 'Worker'] as $field => $role) {
+                    $user = User::find($configuration[$field] ?? null);
+                    if (! $user?->hasRole($role)) {
+                        $this->fail('Select an authorized '.$role.'.');
+                    }
+                }
+            }
+            $typeId = $this->catalog->id($type.'_type');
+            // Serialize the existing name generator for invoice-created orders of this type.
+            DB::table('wo_type')->where('id', $typeId)->lockForUpdate()->first();
+            $order = new WorkOrder;
+            $order->type_id = $typeId;
+            $order->status_id = $this->catalog->id('new_order_status');
+            $order->customer_quickbooks_id = $invoice->customer->quickbooks_id;
+            $order->date = now();
+            $order->name = WorkOrderController::WOname($type === 'distribution' ? 'WD' : 'WI');
+            $order->save();
+            foreach ($requirements as $assetId => $quantity) {
+                $order->workOrderAssets()->create(['asset_id' => $assetId, 'quantity' => $quantity]);
+            }
+            $installation = null;
+            if ($type === 'installation') {
+                $installation = $this->installations->create([
+                    'work_order_id' => $order->id, 'equipment_id' => $equipment->id,
+                    'customer_id' => $invoice->customer_id, 'customer_quickbooks_id' => $invoice->customer->quickbooks_id,
+                    'inst_manager_user_id' => $configuration['inst_manager_user_id'],
+                    'worker_user_id' => $configuration['worker_user_id'], 'status' => 'draft',
+                ]);
+            }
+            $descriptions = $invoice->lines->filter(fn ($line) => $line->isPhysical())
+                ->groupBy('asset_id')->map(fn ($rows) => $rows->pluck('description')->filter()->unique()->implode("\n"))->all();
+            $invoice->update(['operation_type' => $type, 'operation_status' => 'created', 'classified_at' => now(),
+                'classified_by' => $actor->id, 'work_order_id' => $order->id,
+                'operation_snapshot' => ['requirements' => $requirements, 'descriptions' => $descriptions,
+                    'customer_quickbooks_id' => (string) $invoice->customer->quickbooks_id]]);
+            foreach (['Invoice Classified', ucfirst($type).' WorkOrder Created'] as $event) {
+                $invoice->events()->create(['event' => $event, 'work_order_id' => $order->id,
+                    'installation_id' => $installation?->id, 'user_id' => $actor->id, 'metadata' => ['requirements' => $requirements]]);
+            }
+
+            return $order;
+        }, 3);
+    }
+
+    private function fail(string $message): never
+    {
+        throw ValidationException::withMessages(['invoice' => $message]);
+    }
+}

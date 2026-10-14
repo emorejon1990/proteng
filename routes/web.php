@@ -1,14 +1,15 @@
 <?php
 
-use Livewire\Volt\Volt;
-use Illuminate\Support\Facades\Route;
-use App\Http\Middleware\RedirectByRole;
 use App\Filament\Pages\Auth\CustomLogin;
+use App\Http\Controllers\InvoicePackingSlipController;
+use App\Http\Controllers\ProductsController;
+use App\Http\Controllers\ProductSerialPreviewController;
 use App\Http\Controllers\QuickBooksController;
 use App\Http\Controllers\QuickBooksInvoicePdfController;
-use App\Http\Controllers\ProductSerialPreviewController;
 use App\Http\Controllers\SerialExportController;
-use App\Http\Controllers\Auth\ForcePasswordChangeController;
+use App\Http\Middleware\RedirectByRole;
+use Illuminate\Support\Facades\Route;
+use Livewire\Volt\Volt;
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -31,9 +32,9 @@ require __DIR__.'/auth.php';
 Route::get('/login', CustomLogin::class)->middleware('guest')->name('login');
 
 // Redirección después de login según rol
-Route::get('/', fn() => redirect('/'))->middleware(RedirectByRole::class);
+Route::get('/', fn () => redirect('/'))->middleware(RedirectByRole::class);
 
-Route::put('/product/{product}', [\App\Http\Controllers\ProductsController::class, 'update'])->name('product.update');
+Route::put('/product/{product}', [ProductsController::class, 'update'])->name('product.update');
 
 Route::get('/offline', function () {
     return view('vendor/laravelpwa/offline');
@@ -58,4 +59,6 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     Route::get('/invoices/{invoice}/pdf', QuickBooksInvoicePdfController::class)
         ->name('invoices.pdf');
+    Route::get('/invoices/{invoice}/packing-slip', InvoicePackingSlipController::class)
+        ->name('invoices.packing-slip');
 });

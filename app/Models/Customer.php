@@ -3,8 +3,8 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Customer extends Model
 {
@@ -15,7 +15,10 @@ class Customer extends Model
         'email',
         'phone',
         'active',
+        'billing_address', 'shipping_address',
     ];
+
+    protected $casts = ['billing_address' => 'array', 'shipping_address' => 'array'];
 
     public function user(): BelongsTo
     {

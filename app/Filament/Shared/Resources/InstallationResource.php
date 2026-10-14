@@ -2,13 +2,13 @@
 
 namespace App\Filament\Shared\Resources;
 
+use App\Filament\Manager\Resources\InvoiceResource;
 use App\Filament\Shared\Resources\InstallationResource\Pages;
 use App\Models\Customer;
 use App\Models\Equipment;
+use App\Models\EquipmentInstallationStep;
 use App\Models\Installation;
 use App\Models\User;
-use App\Services\InstallationService;
-use Filament\Forms;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
@@ -34,7 +34,9 @@ class InstallationResource extends Resource
     protected static ?string $model = Installation::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-wrench-screwdriver';
+
     protected static ?string $navigationGroup = 'Operations';
+
     protected static ?int $navigationSort = 2;
 
     public static function canAccess(): bool
@@ -61,7 +63,7 @@ class InstallationResource extends Resource
                                 return;
                             }
 
-                            $template = \App\Models\EquipmentInstallationStep::query()
+                            $template = EquipmentInstallationStep::query()
                                 ->where('equipment_id', $state)
                                 ->orderBy('sort_order')
                                 ->get()
@@ -238,6 +240,9 @@ class InstallationResource extends Resource
                     }),
             ])
             ->actions([
+                Tables\Actions\Action::make('viewInvoice')->label('View Invoice')
+                    ->visible(fn (Installation $record) => $record->workOrder?->invoice && auth()->user()?->can('view', $record->workOrder->invoice))
+                    ->url(fn (Installation $record) => InvoiceResource::getUrl('index', ['tableSearch' => $record->workOrder?->invoice?->quickbooks_id])),
                 Tables\Actions\ViewAction::make()->modalWidth(MaxWidth::SevenExtraLarge),
                 Tables\Actions\EditAction::make()->modalWidth(MaxWidth::SevenExtraLarge),
             ])

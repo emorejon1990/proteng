@@ -2,18 +2,20 @@
 
 namespace App\Filament\Admin\Pages;
 
-use Filament\Pages\Page;
-use Filament\Actions\Action;
 use App\Services\AssetSyncService;
-use App\Services\InvoiceSyncService;
-use Illuminate\Support\Facades\Auth;
 use App\Services\CustomerSyncService;
+use App\Services\InvoiceSyncService;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
+use Filament\Pages\Page;
+use Illuminate\Support\Facades\Auth;
 
 class QuickBooksSync extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-arrow-path';
+
     protected static ?string $navigationLabel = 'QuickBooks Sync';
+
     protected static ?string $navigationGroup = 'QuickBooks';
 
     protected static string $view = 'filament.admin.pages.quick-books-sync';
@@ -42,7 +44,15 @@ class QuickBooksSync extends Page
             Action::make('syncInvoices')
                 ->label('Sync Invoices')
                 ->action(function () {
-                    app(InvoiceSyncService::class)->sync();
+                    abort_unless(Auth::user()?->hasRole('Admin'), 403);
+                    try {
+                        app(InvoiceSyncService::class)->sync();
+                    } catch (\Throwable $e) {
+                        report($e);
+                        Notification::make()->title('Invoice sync failed')->body('Previous data was preserved. Review sync errors and the QuickBooks connection.')->danger()->send();
+
+                        return;
+                    }
 
                     Notification::make()
                         ->title('Invoices synced successfully')
@@ -65,7 +75,15 @@ class QuickBooksSync extends Page
                 ->label('Sync ALL')
                 ->action(function () {
                     app(CustomerSyncService::class)->sync();
-                    app(InvoiceSyncService::class)->sync();
+                    abort_unless(Auth::user()?->hasRole('Admin'), 403);
+                    try {
+                        app(InvoiceSyncService::class)->sync();
+                    } catch (\Throwable $e) {
+                        report($e);
+                        Notification::make()->title('Invoice sync failed')->body('Previous data was preserved. Review sync errors and the QuickBooks connection.')->danger()->send();
+
+                        return;
+                    }
                     app(AssetSyncService::class)->sync();
 
                     Notification::make()
