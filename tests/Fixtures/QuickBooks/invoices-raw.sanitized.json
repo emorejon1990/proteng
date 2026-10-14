@@ -1,0 +1,1031 @@
+{
+  "1982": {
+    "Id": "1982",
+    "DocNumber": "SANITIZED-1982",
+    "TxnDate": "2023-01-16",
+    "CurrencyRef": {
+      "value": "USD"
+    },
+    "Line": [
+      {
+        "Id": "1",
+        "LineNum": 1,
+        "Amount": 2400.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "30"
+          },
+          "UnitPrice": 1.2,
+          "Qty": 2000,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "2",
+        "LineNum": 2,
+        "Amount": 2400.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "30"
+          },
+          "UnitPrice": 1.2,
+          "Qty": 2000,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "3",
+        "LineNum": 3,
+        "Amount": 398.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "16"
+          },
+          "UnitPrice": 199,
+          "Qty": 2,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "4",
+        "LineNum": 4,
+        "Amount": 278.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "31"
+          },
+          "UnitPrice": 139,
+          "Qty": 2,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "5",
+        "LineNum": 5,
+        "Amount": 449.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "17"
+          },
+          "UnitPrice": 449,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "6",
+        "LineNum": 6,
+        "Amount": 2400.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "30"
+          },
+          "UnitPrice": 1.2,
+          "Qty": 2000,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "7",
+        "LineNum": 7,
+        "Amount": 1800.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "30"
+          },
+          "UnitPrice": 1.2,
+          "Qty": 1500,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "8",
+        "LineNum": 8,
+        "Amount": 1800.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "30"
+          },
+          "UnitPrice": 1.2,
+          "Qty": 1500,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "9",
+        "LineNum": 9,
+        "Amount": 678.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "12"
+          },
+          "UnitPrice": 339,
+          "Qty": 2,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "10",
+        "LineNum": 10,
+        "Amount": 139.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "31"
+          },
+          "UnitPrice": 139,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "11",
+        "LineNum": 11,
+        "Amount": 449.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "17"
+          },
+          "UnitPrice": 449,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "12",
+        "LineNum": 12,
+        "Amount": 178.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "35"
+          },
+          "UnitPrice": 89,
+          "Qty": 2,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "13",
+        "LineNum": 13,
+        "Amount": 949.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "19"
+          },
+          "UnitPrice": 949,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Id": "14",
+        "LineNum": 14,
+        "Amount": 4800.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "37"
+          },
+          "UnitPrice": 1200,
+          "Qty": 4,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "15",
+        "LineNum": 15,
+        "Amount": 1850.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "32"
+          },
+          "UnitPrice": 1850,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Amount": 20968.0,
+        "DetailType": "SubTotalLineDetail",
+        "SubTotalLineDetail": {}
+      },
+      {
+        "Amount": 747.5,
+        "DetailType": "DiscountLineDetail",
+        "DiscountLineDetail": {
+          "PercentBased": false,
+          "DiscountAccountRef": {
+            "value": "68"
+          }
+        }
+      },
+      {
+        "Amount": 800.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "SHIPPING_ITEM_ID"
+          }
+        }
+      }
+    ],
+    "TxnTaxDetail": {
+      "TotalTax": 1131.76
+    },
+    "CustomerRef": {
+      "value": "10"
+    },
+    "DueDate": "2023-02-15",
+    "TotalAmt": 22152.26,
+    "Balance": 0
+  },
+  "11241": {
+    "Id": "11241",
+    "DocNumber": "SANITIZED-11241",
+    "TxnDate": "2025-12-20",
+    "CurrencyRef": {
+      "value": "USD"
+    },
+    "Line": [
+      {
+        "Id": "1",
+        "LineNum": 1,
+        "Amount": 6490.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "199"
+          },
+          "UnitPrice": 6490,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "TAX"
+          }
+        }
+      },
+      {
+        "Amount": 6490.0,
+        "DetailType": "SubTotalLineDetail",
+        "SubTotalLineDetail": {}
+      },
+      {
+        "Amount": 1990.0,
+        "DetailType": "DiscountLineDetail",
+        "DiscountLineDetail": {
+          "PercentBased": false,
+          "DiscountAccountRef": {
+            "value": "68"
+          }
+        }
+      }
+    ],
+    "TxnTaxDetail": {
+      "TotalTax": 0
+    },
+    "CustomerRef": {
+      "value": "10"
+    },
+    "DueDate": "2025-12-20",
+    "TotalAmt": 4500.0,
+    "Balance": 0
+  },
+  "11990": {
+    "Id": "11990",
+    "DocNumber": "SANITIZED-11990",
+    "TxnDate": "2026-04-15",
+    "CurrencyRef": {
+      "value": "USD"
+    },
+    "Line": [
+      {
+        "Id": "1",
+        "LineNum": 1,
+        "Amount": 33488.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "201"
+          },
+          "UnitPrice": 8372,
+          "Qty": 4,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "2",
+        "LineNum": 2,
+        "Amount": 14544.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "170"
+          },
+          "UnitPrice": 7272,
+          "Qty": 2,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "3",
+        "LineNum": 3,
+        "Amount": 7272.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "170"
+          },
+          "UnitPrice": 7272,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "4",
+        "LineNum": 4,
+        "Amount": 16744.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "201"
+          },
+          "UnitPrice": 8372,
+          "Qty": 2,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "5",
+        "LineNum": 5,
+        "Amount": 5133.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "44"
+          },
+          "UnitPrice": 5133,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "6",
+        "LineNum": 6,
+        "Amount": 5133.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "44"
+          },
+          "UnitPrice": 5133,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "7",
+        "LineNum": 7,
+        "Amount": 5133.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "44"
+          },
+          "UnitPrice": 5133,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "8",
+        "LineNum": 8,
+        "Amount": 91872.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1010000021"
+          },
+          "UnitPrice": 8352,
+          "Qty": 11,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "9",
+        "LineNum": 9,
+        "Amount": 7236.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "21"
+          },
+          "UnitPrice": 7236,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "10",
+        "LineNum": 10,
+        "Amount": 16744.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "201"
+          },
+          "UnitPrice": 8372,
+          "Qty": 2,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "11",
+        "LineNum": 11,
+        "Amount": 6201.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "21"
+          },
+          "UnitPrice": 6201,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "12",
+        "LineNum": 12,
+        "Amount": 8372.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "201"
+          },
+          "UnitPrice": 8372,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "13",
+        "LineNum": 13,
+        "Amount": 5133.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "44"
+          },
+          "UnitPrice": 5133,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "14",
+        "LineNum": 14,
+        "Amount": 7272.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "170"
+          },
+          "UnitPrice": 7272,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "15",
+        "LineNum": 15,
+        "Amount": 8372.0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "201"
+          },
+          "UnitPrice": 8372,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "16",
+        "LineNum": 16,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 500,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "17",
+        "LineNum": 17,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 1000,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "18",
+        "LineNum": 18,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 300,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "19",
+        "LineNum": 19,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 200,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "20",
+        "LineNum": 20,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 2,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "21",
+        "LineNum": 21,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 350,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "22",
+        "LineNum": 22,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 250,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "23",
+        "LineNum": 23,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 250,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "24",
+        "LineNum": 24,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 100,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "25",
+        "LineNum": 25,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 100,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "26",
+        "LineNum": 26,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 12,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "27",
+        "LineNum": 27,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 10,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "28",
+        "LineNum": 28,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 2,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "29",
+        "LineNum": 29,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 4,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "30",
+        "LineNum": 30,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 2,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "31",
+        "LineNum": 31,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 6,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "32",
+        "LineNum": 32,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 7,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "33",
+        "LineNum": 33,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 7,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "34",
+        "LineNum": 34,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 80,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "35",
+        "LineNum": 35,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 30,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "36",
+        "LineNum": 36,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 7,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "37",
+        "LineNum": 37,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 180,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "38",
+        "LineNum": 38,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 60,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "39",
+        "LineNum": 39,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 3,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "40",
+        "LineNum": 40,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 33,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "41",
+        "LineNum": 41,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 33,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Id": "42",
+        "LineNum": 42,
+        "Amount": 0,
+        "DetailType": "SalesItemLineDetail",
+        "SalesItemLineDetail": {
+          "ItemRef": {
+            "value": "1"
+          },
+          "UnitPrice": 0,
+          "Qty": 1,
+          "TaxCodeRef": {
+            "value": "NON"
+          }
+        }
+      },
+      {
+        "Amount": 238649.0,
+        "DetailType": "SubTotalLineDetail",
+        "SubTotalLineDetail": {}
+      }
+    ],
+    "TxnTaxDetail": {
+      "TotalTax": 0
+    },
+    "CustomerRef": {
+      "value": "10"
+    },
+    "DueDate": "2026-05-15",
+    "TotalAmt": 238649.0,
+    "Balance": 0
+  }
+}

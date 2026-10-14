@@ -95,10 +95,31 @@ class InvoiceSyncService
         if (empty($p['Id']) || ! isset($p['TotalAmt'], $p['Balance'], $p['TxnDate']) || ! isset($p['Line']) || ! is_array($p['Line']) || ! $p['Line']) {
             throw new InvoiceDataException('Incomplete invoice payload; previous data was preserved.');
         }
-        if (! is_numeric($p['TotalAmt']) || ! is_numeric($p['Balance'])) {
+        if (! is_numeric($p['TotalAmt']) || ! is_numeric($p['Balance']) || ! is_finite((float) $p['TotalAmt']) || ! is_finite((float) $p['Balance'])) {
             throw new InvoiceDataException('Invoice totals are invalid; previous data was preserved.');
         }
         $ref = QuickBooksReadGateway::entityRef($p['CustomerRef'] ?? null, ['entity' => 'Customer']);
+        $details = [];
+        foreach ($p['Line'] as $number => $line) {
+            $details[$number] = $this->lineDetail($line, $number);
+        }
+        // Lock and compare before Item reads. An unchanged invoice must retain its line identities.
+        $storedPayload = json_decode(json_encode($p, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
+        $unchanged = DB::transaction(function () use ($p, $realm, $storedPayload) {
+            $invoice = Invoice::where('quickbooks_id', (string) $p['Id'])->lockForUpdate()->first();
+            if (! $invoice || $invoice->realm_id !== $realm || $invoice->raw_payload !== $storedPayload) {
+                return null;
+            }
+            if ($invoice->sync_status !== 'synced' || $invoice->sync_error !== null) {
+                $invoice->update(['sync_status' => 'synced', 'sync_error' => null]);
+            }
+            $invoice->events()->create(['event' => 'Invoice Unchanged', 'metadata' => ['quickbooks_id' => $invoice->quickbooks_id]]);
+
+            return $invoice->fresh();
+        });
+        if ($unchanged) {
+            return $unchanged;
+        }
         $customer = Customer::where('quickbooks_id', $ref)->first();
         $customerPayload = $customer ? null : $this->gateway->find('Customer', $ref);
         if ($customerPayload !== null && (QuickBooksReadGateway::entityRef($customerPayload['Id'] ?? null) !== $ref || empty($customerPayload['DisplayName']))) {
@@ -106,21 +127,10 @@ class InvoiceSyncService
         }
         $lines = [];
         foreach ($p['Line'] as $number => $line) {
-            if (! is_array($line) || empty($line['DetailType']) || (! isset($line['Amount']) && ($line['DetailType'] ?? '') !== 'DescriptionOnly')) {
-                throw new InvoiceDataException('Incomplete line; previous data was preserved.');
-            }
-            $detail = $line[$line['DetailType']] ?? [];
-            if (! is_array($detail) || ! is_numeric($line['Amount'] ?? 0)) {
-                throw new InvoiceDataException('Invalid line detail or amount.', ['line_index' => $number]);
-            }
-            $itemId = $line['DetailType'] === 'SalesItemLineDetail' && ($detail['ItemRef'] ?? null) !== null
-                ? QuickBooksReadGateway::entityRef($detail['ItemRef'] ?? null, ['entity' => 'Item', 'line_type' => 'SalesItemLineDetail', 'line_index' => $number]) : null;
-            $itemType = null;
+            ['detail' => $detail, 'item_id' => $itemId, 'shipping' => $shipping] = $details[$number];
+            $itemType = $shipping ? 'Shipping' : null;
             $asset = null;
-            if ($line['DetailType'] === 'GroupLineDetail') {
-                $this->validateGroup($detail, $number);
-            }
-            if ($itemId) {
+            if ($itemId && ! $shipping) {
                 $this->gateway->realm();
                 $item = $this->itemCache[$itemId] ?? $this->gateway->find('Item', $itemId);
                 if ($this->itemCache !== null) {
@@ -139,10 +149,19 @@ class InvoiceSyncService
                 'amount' => $line['Amount'] ?? 0, 'tax_code' => QuickBooksReadGateway::ref($detail['TaxCodeRef'] ?? null), 'raw_payload' => $line];
         }
 
-        return DB::transaction(function () use ($p, $realm, $customer, $customerPayload, $lines) {
+        return DB::transaction(function () use ($p, $realm, $customer, $customerPayload, $lines, $storedPayload) {
             $customer ??= $this->customers->import($customerPayload);
             Customer::whereKey($customer->id)->lockForUpdate()->firstOrFail();
             $invoice = Invoice::where('quickbooks_id', (string) $p['Id'])->lockForUpdate()->first();
+            // Another importer may have saved this same payload while Item reads were in flight.
+            if ($invoice && $invoice->realm_id === $realm && $invoice->raw_payload === $storedPayload) {
+                if ($invoice->sync_status !== 'synced' || $invoice->sync_error !== null) {
+                    $invoice->update(['sync_status' => 'synced', 'sync_error' => null]);
+                }
+                $invoice->events()->create(['event' => 'Invoice Unchanged', 'metadata' => ['quickbooks_id' => $invoice->quickbooks_id]]);
+
+                return $invoice->fresh();
+            }
             $new = ! $invoice;
             $invoice ??= new Invoice(['quickbooks_id' => (string) $p['Id']]);
             $changed = $invoice->raw_payload !== $p;
@@ -185,6 +204,39 @@ class InvoiceSyncService
 
             return $invoice->fresh();
         }, 3);
+    }
+
+    private function lineDetail(mixed $line, int $number): array
+    {
+        if (! is_array($line) || ! is_string($line['DetailType'] ?? null) || $line['DetailType'] === '' || (! isset($line['Amount']) && ($line['DetailType'] ?? '') !== 'DescriptionOnly')) {
+            throw new InvoiceDataException('Incomplete line; previous data was preserved.');
+        }
+        if (! in_array($line['DetailType'], ['SalesItemLineDetail', 'SubTotalLineDetail', 'DiscountLineDetail', 'GroupLineDetail', 'DescriptionOnly'], true)) {
+            throw new InvoiceDataException('Unsupported invoice line type; previous data preserved.', ['line_index' => $number, 'line_type' => 'unsupported']);
+        }
+        $detail = $line[$line['DetailType']] ?? [];
+        // The installed SDK represents an empty subtotal XML element as an empty string.
+        if ($line['DetailType'] === 'SubTotalLineDetail' && $detail === '') {
+            $detail = [];
+        }
+        if (! is_array($detail) || ! is_numeric($line['Amount'] ?? 0) || ! is_finite((float) ($line['Amount'] ?? 0))) {
+            throw new InvoiceDataException('Invalid line detail or amount.', ['line_index' => $number]);
+        }
+        $itemRef = $line['DetailType'] === 'SalesItemLineDetail' ? ($detail['ItemRef'] ?? null) : null;
+        $shipping = $itemRef === 'SHIPPING_ITEM_ID' || (is_array($itemRef) && ($itemRef['value'] ?? $itemRef['Value'] ?? null) === 'SHIPPING_ITEM_ID');
+        $itemId = $shipping ? 'SHIPPING_ITEM_ID' : ($itemRef !== null
+            ? QuickBooksReadGateway::entityRef($itemRef, ['entity' => 'Item', 'line_type' => 'SalesItemLineDetail', 'line_index' => $number]) : null);
+        if ($line['DetailType'] === 'GroupLineDetail') {
+            $this->validateGroup($detail, $number);
+        }
+        foreach (['Qty', 'UnitPrice'] as $field) {
+            if (isset($detail[$field]) && (! is_numeric($detail[$field]) || ! is_finite((float) $detail[$field]))) {
+                throw new InvoiceDataException('Invalid line quantity or price.', ['line_index' => $number]);
+            }
+        }
+        QuickBooksReadGateway::ref($detail['TaxCodeRef'] ?? null);
+
+        return ['detail' => $detail, 'item_id' => $itemId, 'shipping' => $shipping];
     }
 
     private function failed($id, \Throwable $e): void

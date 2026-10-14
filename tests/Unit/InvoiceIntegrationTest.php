@@ -436,7 +436,10 @@ it('reuses items within a run and clears the cache between runs', function () {
     User::find(1)->assignRole('Admin');
     $gateway = Mockery::mock(QuickBooksReadGateway::class);
     $gateway->shouldReceive('realm')->andReturn('realm-one');
-    $gateway->shouldReceive('page')->with('Invoice', 1)->twice()->andReturn([invoicePayload(), invoicePayload(['Id' => '501'])]);
+    $gateway->shouldReceive('page')->with('Invoice', 1)->twice()->andReturn(
+        [invoicePayload(), invoicePayload(['Id' => '501'])],
+        [invoicePayload(), invoicePayload(['Id' => '501']), invoicePayload(['Id' => '502'])],
+    );
     $gateway->shouldReceive('find')->with('Item', '100')->twice()->andReturn(['Id' => '100', 'Type' => 'Inventory']);
     $gateway->shouldReceive('find')->with('Item', '200')->twice()->andReturn(['Id' => '200', 'Type' => 'Service']);
     $this->instance(QuickBooksReadGateway::class, $gateway);

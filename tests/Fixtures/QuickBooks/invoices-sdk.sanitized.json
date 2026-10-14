@@ -1,0 +1,4075 @@
+{
+  "1982": {
+    "type": "object",
+    "class": "QuickBooksOnline\\API\\Data\\IPPInvoice",
+    "properties": {
+      "Id": {
+        "type": "string",
+        "value": "1982"
+      },
+      "DocNumber": {
+        "type": "string",
+        "value": "SANITIZED-1982"
+      },
+      "TxnDate": {
+        "type": "string",
+        "value": "2023-01-16"
+      },
+      "CurrencyRef": {
+        "type": "string",
+        "value": "USD"
+      },
+      "Line": {
+        "type": "array",
+        "entries": [
+          {
+            "key": {
+              "type": "integer",
+              "value": 0
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "1"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "1"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "2400.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "30"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "1.2"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2000"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 1
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "2"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "2"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "2400.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "30"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "1.2"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2000"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 2
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "3"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "3"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "398.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "16"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "199"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 3
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "4"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "4"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "278.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "31"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "139"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 4
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "5"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "5"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "449.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "17"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "449"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 5
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "6"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "6"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "2400.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "30"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "1.2"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2000"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 6
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "7"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "7"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "1800.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "30"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "1.2"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1500"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 7
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "8"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "8"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "1800.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "30"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "1.2"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1500"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 8
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "9"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "9"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "678.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "12"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "339"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 9
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "10"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "10"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "139.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "31"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "139"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 10
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "11"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "11"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "449.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "17"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "449"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 11
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "12"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "12"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "178.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "35"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "89"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 12
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "13"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "13"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "949.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "19"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "949"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 13
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "14"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "14"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "4800.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "37"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "1200"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "4"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 14
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "15"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "15"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "1850.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "32"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "1850"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 15
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "LineNum": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "20968.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SubTotalLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "string",
+                  "value": ""
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 16
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "LineNum": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "747.50"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "DiscountLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPDiscountLineDetail",
+                  "properties": {
+                    "PercentBased": {
+                      "type": "string",
+                      "value": "false"
+                    },
+                    "DiscountPercent": {
+                      "type": "NULL",
+                      "value": null
+                    },
+                    "DiscountAccountRef": {
+                      "type": "string",
+                      "value": "68"
+                    },
+                    "TaxCodeRef": {
+                      "type": "NULL",
+                      "value": null
+                    }
+                  }
+                },
+                "SalesItemLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 17
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "LineNum": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "800.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "SHIPPING_ITEM_ID"
+                    },
+                    "UnitPrice": {
+                      "type": "NULL",
+                      "value": null
+                    },
+                    "Qty": {
+                      "type": "NULL",
+                      "value": null
+                    },
+                    "TaxCodeRef": {
+                      "type": "NULL",
+                      "value": null
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          }
+        ]
+      },
+      "TxnTaxDetail": {
+        "type": "object",
+        "class": "QuickBooksOnline\\API\\Data\\IPPTxnTaxDetail",
+        "properties": {
+          "TotalTax": {
+            "type": "string",
+            "value": "1131.76"
+          }
+        }
+      },
+      "CustomerRef": {
+        "type": "string",
+        "value": "10"
+      },
+      "DueDate": {
+        "type": "string",
+        "value": "2023-02-15"
+      },
+      "TotalAmt": {
+        "type": "string",
+        "value": "22152.26"
+      },
+      "Balance": {
+        "type": "string",
+        "value": "0"
+      }
+    }
+  },
+  "11241": {
+    "type": "object",
+    "class": "QuickBooksOnline\\API\\Data\\IPPInvoice",
+    "properties": {
+      "Id": {
+        "type": "string",
+        "value": "11241"
+      },
+      "DocNumber": {
+        "type": "string",
+        "value": "SANITIZED-11241"
+      },
+      "TxnDate": {
+        "type": "string",
+        "value": "2025-12-20"
+      },
+      "CurrencyRef": {
+        "type": "string",
+        "value": "USD"
+      },
+      "Line": {
+        "type": "array",
+        "entries": [
+          {
+            "key": {
+              "type": "integer",
+              "value": 0
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "1"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "1"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "6490.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "199"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "6490"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "TAX"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 1
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "LineNum": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "6490.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SubTotalLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "string",
+                  "value": ""
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 2
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "LineNum": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "1990.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "DiscountLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPDiscountLineDetail",
+                  "properties": {
+                    "PercentBased": {
+                      "type": "string",
+                      "value": "false"
+                    },
+                    "DiscountPercent": {
+                      "type": "NULL",
+                      "value": null
+                    },
+                    "DiscountAccountRef": {
+                      "type": "string",
+                      "value": "68"
+                    },
+                    "TaxCodeRef": {
+                      "type": "NULL",
+                      "value": null
+                    }
+                  }
+                },
+                "SalesItemLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          }
+        ]
+      },
+      "TxnTaxDetail": {
+        "type": "object",
+        "class": "QuickBooksOnline\\API\\Data\\IPPTxnTaxDetail",
+        "properties": {
+          "TotalTax": {
+            "type": "string",
+            "value": "0"
+          }
+        }
+      },
+      "CustomerRef": {
+        "type": "string",
+        "value": "10"
+      },
+      "DueDate": {
+        "type": "string",
+        "value": "2025-12-20"
+      },
+      "TotalAmt": {
+        "type": "string",
+        "value": "4500.00"
+      },
+      "Balance": {
+        "type": "string",
+        "value": "0"
+      }
+    }
+  },
+  "11990": {
+    "type": "object",
+    "class": "QuickBooksOnline\\API\\Data\\IPPInvoice",
+    "properties": {
+      "Id": {
+        "type": "string",
+        "value": "11990"
+      },
+      "DocNumber": {
+        "type": "string",
+        "value": "SANITIZED-11990"
+      },
+      "TxnDate": {
+        "type": "string",
+        "value": "2026-04-15"
+      },
+      "CurrencyRef": {
+        "type": "string",
+        "value": "USD"
+      },
+      "Line": {
+        "type": "array",
+        "entries": [
+          {
+            "key": {
+              "type": "integer",
+              "value": 0
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "1"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "1"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "33488.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "201"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "8372"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "4"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 1
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "2"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "2"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "14544.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "170"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "7272"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 2
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "3"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "3"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "7272.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "170"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "7272"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 3
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "4"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "4"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "16744.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "201"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "8372"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 4
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "5"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "5"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "5133.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "44"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "5133"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 5
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "6"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "6"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "5133.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "44"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "5133"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 6
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "7"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "7"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "5133.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "44"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "5133"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 7
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "8"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "8"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "91872.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1010000021"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "8352"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "11"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 8
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "9"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "9"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "7236.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "21"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "7236"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 9
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "10"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "10"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "16744.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "201"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "8372"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 10
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "11"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "11"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "6201.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "21"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "6201"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 11
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "12"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "12"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "8372.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "201"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "8372"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 12
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "13"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "13"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "5133.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "44"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "5133"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 13
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "14"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "14"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "7272.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "170"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "7272"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 14
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "15"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "15"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "8372.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "201"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "8372"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 15
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "16"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "16"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "500"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 16
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "17"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "17"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1000"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 17
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "18"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "18"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "300"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 18
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "19"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "19"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "200"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 19
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "20"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "20"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 20
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "21"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "21"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "350"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 21
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "22"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "22"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "250"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 22
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "23"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "23"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "250"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 23
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "24"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "24"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "100"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 24
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "25"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "25"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "100"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 25
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "26"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "26"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "12"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 26
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "27"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "27"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "10"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 27
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "28"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "28"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 28
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "29"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "29"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "4"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 29
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "30"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "30"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "2"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 30
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "31"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "31"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "6"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 31
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "32"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "32"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "7"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 32
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "33"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "33"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "7"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 33
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "34"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "34"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "80"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 34
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "35"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "35"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "30"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 35
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "36"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "36"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "7"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 36
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "37"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "37"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "180"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 37
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "38"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "38"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "60"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 38
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "39"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "39"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "3"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 39
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "40"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "40"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "33"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 40
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "41"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "41"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "33"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 41
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "string",
+                  "value": "42"
+                },
+                "LineNum": {
+                  "type": "string",
+                  "value": "42"
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "0"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SalesItemLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "object",
+                  "class": "QuickBooksOnline\\API\\Data\\IPPSalesItemLineDetail",
+                  "properties": {
+                    "ItemRef": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "UnitPrice": {
+                      "type": "string",
+                      "value": "0"
+                    },
+                    "Qty": {
+                      "type": "string",
+                      "value": "1"
+                    },
+                    "TaxCodeRef": {
+                      "type": "string",
+                      "value": "NON"
+                    }
+                  }
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                }
+              }
+            }
+          },
+          {
+            "key": {
+              "type": "integer",
+              "value": 42
+            },
+            "value": {
+              "type": "object",
+              "class": "QuickBooksOnline\\API\\Data\\IPPLine",
+              "properties": {
+                "Id": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "LineNum": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "Amount": {
+                  "type": "string",
+                  "value": "238649.00"
+                },
+                "DetailType": {
+                  "type": "string",
+                  "value": "SubTotalLineDetail"
+                },
+                "DiscountLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SalesItemLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "GroupLineDetail": {
+                  "type": "NULL",
+                  "value": null
+                },
+                "SubTotalLineDetail": {
+                  "type": "string",
+                  "value": ""
+                }
+              }
+            }
+          }
+        ]
+      },
+      "TxnTaxDetail": {
+        "type": "object",
+        "class": "QuickBooksOnline\\API\\Data\\IPPTxnTaxDetail",
+        "properties": {
+          "TotalTax": {
+            "type": "string",
+            "value": "0"
+          }
+        }
+      },
+      "CustomerRef": {
+        "type": "string",
+        "value": "10"
+      },
+      "DueDate": {
+        "type": "string",
+        "value": "2026-05-15"
+      },
+      "TotalAmt": {
+        "type": "string",
+        "value": "238649.00"
+      },
+      "Balance": {
+        "type": "string",
+        "value": "0"
+      }
+    }
+  }
+}

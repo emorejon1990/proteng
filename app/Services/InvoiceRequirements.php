@@ -21,7 +21,7 @@ class InvoiceRequirements
 
                 continue;
             }
-            if ($line->item_type === 'Service') {
+            if ($line->item_type === 'Service' || ($line->item_type === 'Shipping' && $line->quickbooks_item_id === 'SHIPPING_ITEM_ID')) {
                 continue;
             }
             if (! $line->isPhysical()) {
