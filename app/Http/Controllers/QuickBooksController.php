@@ -2,113 +2,109 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
-use QuickBooksOnline\API\DataService\DataService;
+use App\Filament\Pages\QuickBooks;
 use App\Models\QuickbooksToken;
-use Exception;
-use QuickBooksOnline\API\Core\OAuth\OAuth2\OAuth2LoginHelper;
+use App\Services\QuickBooksDataServiceFactory;
+use App\Services\QuickBooksDiagnostics;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
+use QuickBooksOnline\API\DataService\DataService;
 
 class QuickBooksController extends Controller
 {
     protected function makeDataService(array $overrides = []): DataService
     {
-        $config = array_merge([
-            'auth_mode' => 'oauth2',
-            'ClientID' => env('QB_CLIENT_ID'),
-            'ClientSecret' => env('QB_CLIENT_SECRET'),
-            'RedirectURI' => env('QB_REDIRECT_URI'),
-            'scope' => env('QB_SCOPE'),
-            'baseUrl' => env('QB_ENV'), // 'sandbox' o 'production'
-        ], $overrides);
-
-        //dd($config);
-
-        return DataService::Configure($config);
+        return app(QuickBooksDataServiceFactory::class)->make($overrides);
     }
 
-    public function connect()
+    private function returnUrl(Request $request): string
     {
-        $dataService = $this->makeDataService();
+        return QuickBooks::getUrl(panel: $request->user()?->hasRole('Admin') ? 'admin' : 'manager');
+    }
 
-        /** @var OAuth2LoginHelper $oauth2LoginHelper */
-        $oauth2LoginHelper = $dataService->getOAuth2LoginHelper();
+    public function connect(Request $request)
+    {
+        try {
+            $state = bin2hex(random_bytes(32));
+            $ds = $this->makeDataService(['state' => $state]);
+            $url = $ds->getOAuth2LoginHelper()->getAuthorizationCodeURL();
+            $request->session()->put('quickbooks.oauth', [
+                'state' => $state, 'user_id' => $request->user()->getAuthIdentifier(),
+                'expires_at' => now()->addMinutes(10)->timestamp,
+            ]);
 
-        // genera la URL de autorización
-        $authUrl = $oauth2LoginHelper->getAuthorizationCodeURL();
+            return redirect()->away($url);
+        } catch (\Exception $e) {
+            QuickBooksDiagnostics::failure('connect', $e);
 
-        return redirect()->away($authUrl);
+            return redirect($this->returnUrl($request))->with('error', 'No se pudo iniciar la conexión con QuickBooks. Contacta al administrador.');
+        }
     }
 
     public function callback(Request $request)
     {
+        $pending = $request->session()->get('quickbooks.oauth');
+        $state = $request->input('state');
+        if (! is_array($pending) || ! is_string($state)
+            || ! hash_equals($pending['state'], $state)
+            || $pending['expires_at'] < now()->timestamp
+            || (string) $pending['user_id'] !== (string) $request->user()->getAuthIdentifier()) {
+            return redirect($this->returnUrl($request))->with('error', 'La autorización no es válida o ha vencido. Inicia la conexión de nuevo.');
+        }
+        $request->session()->forget('quickbooks.oauth');
+        if ($request->has('error')) {
+            return redirect($this->returnUrl($request))->with('error', 'La autorización de QuickBooks fue cancelada o rechazada.');
+        }
+        $code = $request->input('code');
+        $realm = $request->input('realmId');
+        if (! is_string($code) || trim($code) === '' || ! is_string($realm) || ! preg_match('/^\d+$/', $realm)) {
+            return redirect($this->returnUrl($request))->with('error', 'QuickBooks devolvió una autorización incompleta.');
+        }
         try {
-            $dataService = $this->makeDataService();
-
-            /** @var OAuth2LoginHelper $oauth2LoginHelper */
-            $oauth2LoginHelper = $dataService->getOAuth2LoginHelper();
-
-            // intercambia el code por tokens
-            $accessTokenObj = $oauth2LoginHelper->exchangeAuthorizationCodeForToken(
-                $request->input('code'),
-                $request->input('realmId')
-            );
-
-            // El objeto devuelto suele ser OAuth2AccessToken
-            if (! $accessTokenObj) {
-                throw new Exception('No se obtuvo token de QuickBooks');
+            $token = $this->makeDataService()->getOAuth2LoginHelper()->exchangeAuthorizationCodeForToken($code, $realm);
+            if (! $token || ! $token->getAccessToken() || ! $token->getRefreshToken()) {
+                throw new \RuntimeException('QuickBooks returned incomplete tokens.');
             }
+            Cache::lock('quickbooks.refresh.'.$realm, 120)->block(15, function () use ($realm, $token) {
+                QuickbooksToken::updateOrCreate(['realm_id' => $realm], [
+                    'access_token' => $token->getAccessToken(), 'refresh_token' => $token->getRefreshToken(),
+                ]);
+            });
 
-            // guarda tokens (encripta a través del modelo)
-            QuickbooksToken::updateOrCreate(
-                ['realm_id' => $request->input('realmId')],
-                [
-                    'access_token' => $accessTokenObj->getAccessToken(),
-                    'refresh_token' => $accessTokenObj->getRefreshToken(),
-                ]
-            );
+            return redirect($this->returnUrl($request))->with('success', 'QuickBooks conectado correctamente');
+        } catch (\Exception $e) {
+            QuickBooksDiagnostics::failure('callback', $e);
 
-            return redirect('/quick-books')->with('success', 'QuickBooks conectado correctamente');
-        } catch (Exception $e) {
-            // log para depuración
-            \Log::error('QuickBooks callback error: '.$e->getMessage(), [
-                'request' => $request->all(),
-            ]);
-
-            return redirect('/quick-books')->with('error', 'Error al conectar con QuickBooks: ' . $e->getMessage());
+            return redirect($this->returnUrl($request))->with('error', 'No se pudo completar la conexión con QuickBooks. Inténtalo de nuevo o contacta al administrador.');
         }
     }
 
-    /**
-     * Crea un DataService listo para usar con tokens guardados (y actualiza tokens si se renuevan).
-     *
-     * @param  QuickbooksToken  $tokenModel
-     * @return DataService
-     */
-    protected function dataServiceFromSavedToken(QuickbooksToken $tokenModel)
+    protected function dataServiceFromSavedToken(QuickbooksToken $tokenModel): DataService
     {
-        $dataService = $this->makeDataService([
+        return $this->makeDataService([
             'accessTokenKey' => $tokenModel->access_token,
             'refreshTokenKey' => $tokenModel->refresh_token,
-            'realmId' => $tokenModel->realm_id,
+            'realmId' => (string) $tokenModel->realm_id,
         ]);
-
-        // Si el SDK requiere un objeto de token
-        // opcional: you can call $dataService->updateOAuth2Token($tokenObject);
-        return $dataService;
     }
 
-    /**
-     * Ejemplo simple: obtener clientes
-     */
     public function customers(Request $request)
     {
-        /** @var \QuickBooksOnline\API\DataService\DataService $dataService */
-        $dataService = $request->attributes->get('quickbooks');
+        try {
+            return $request->attributes->get('quickbooks')->Query('SELECT * FROM Customer MAXRESULTS 20');
+        } catch (\Exception $e) {
+            QuickBooksDiagnostics::failure('customers', $e);
+            abort(502, 'No se pudo consultar QuickBooks. Inténtalo de nuevo.');
+        }
+    }
 
-        $customers = $dataService->Query("SELECT * FROM Customer MAXRESULTS 20");
-
-        return $customers;
+    public function invoices(Request $request)
+    {
+        try {
+            return $request->attributes->get('quickbooks')->Query('SELECT * FROM Invoice MAXRESULTS 20');
+        } catch (\Exception $e) {
+            QuickBooksDiagnostics::failure('invoices', $e);
+            abort(502, 'No se pudo consultar QuickBooks. Inténtalo de nuevo.');
+        }
     }
 }
-
-

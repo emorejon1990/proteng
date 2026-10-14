@@ -1,6 +1,12 @@
 <x-filament::page>
 
     <div class="space-y-6">
+        @if(session('error'))
+            <div role="alert">{{ session('error') }}</div>
+        @endif
+        @if(session('success'))
+            <div role="status">{{ session('success') }}</div>
+        @endif
 
         {{-- ESTADO DE CONEXIÓN --}}
         @if(\App\Models\QuickbooksToken::exists())

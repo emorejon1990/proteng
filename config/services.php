@@ -36,11 +36,11 @@ return [
     ],
 
     'quickbooks' => [
-        'client_id'     => env('QB_CLIENT_ID'),
+        'client_id' => env('QB_CLIENT_ID'),
         'client_secret' => env('QB_CLIENT_SECRET'),
-        'redirect_uri'  => env('QB_REDIRECT_URI'),
-        'scope'         => env('QB_SCOPE'),
-        'env'           => env('QB_ENV'), // Development | Production
+        'redirect_uri' => env('QB_REDIRECT_URI'),
+        'scope' => env('QB_SCOPE'),
+        'env' => env('QB_ENV'), // Development (also sandbox) | Production
     ],
 
 ];

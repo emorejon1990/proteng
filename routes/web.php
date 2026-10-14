@@ -6,6 +6,7 @@ use App\Http\Controllers\ProductSerialPreviewController;
 use App\Http\Controllers\QuickBooksController;
 use App\Http\Controllers\QuickBooksInvoicePdfController;
 use App\Http\Controllers\SerialExportController;
+use App\Http\Middleware\AuthorizeQuickBooks;
 use App\Http\Middleware\RedirectByRole;
 use Illuminate\Support\Facades\Route;
 use Livewire\Volt\Volt;
@@ -40,10 +41,10 @@ Route::get('/offline', function () {
     return view('vendor/laravelpwa/offline');
 });
 
-Route::get('/quickbooks/connect', [QuickBooksController::class, 'connect']);
-Route::get('/quickbooks/callback', [QuickBooksController::class, 'callback']);
+Route::get('/quickbooks/connect', [QuickBooksController::class, 'connect'])->middleware(['auth', AuthorizeQuickBooks::class])->name('quickbooks.connect');
+Route::get('/quickbooks/callback', [QuickBooksController::class, 'callback'])->middleware(['auth', AuthorizeQuickBooks::class])->name('quickbooks.callback');
 
-Route::middleware(['quickbooks'])->group(function () {
+Route::middleware(['auth', AuthorizeQuickBooks::class, 'quickbooks'])->group(function () {
 
     Route::get('/quickbooks/customers', [QuickBooksController::class, 'customers']);
     Route::get('/quickbooks/invoices', [QuickBooksController::class, 'invoices']);

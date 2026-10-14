@@ -2,22 +2,22 @@
 
 namespace App\Filament\Pages;
 
-use Filament\Pages\Page;
-use Filament\Actions\Action;
 use App\Models\QuickbooksToken;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
+use App\Services\QuickBooksDiagnostics;
+use App\Services\QuickBooksService;
+use Filament\Actions\Action;
 use Filament\Notifications\Notification;
-use QuickBooksOnline\API\Facades\Customer;
-use QuickBooksOnline\API\Exception\SdkException;
-use QuickBooksOnline\API\DataService\DataService;
-use QuickBooksOnline\API\Exception\ServiceException;
+use Filament\Pages\Page;
+use Illuminate\Support\Facades\Auth;
 
 class QuickBooks extends Page
 {
     protected static ?string $navigationIcon = 'heroicon-o-banknotes';
+
     protected static ?string $navigationLabel = 'QuickBooks';
+
     protected static ?string $title = 'QuickBooks Integration';
+
     protected static ?string $navigationGroup = 'Integrations';
 
     protected static string $view = 'filament.pages.quick-books';
@@ -55,35 +55,19 @@ class QuickBooks extends Page
      */
     public function loadCustomers(): void
     {
-        $token = \App\Models\QuickbooksToken::whereNotNull('realm_id')->latest()->first();
+        $token = QuickbooksToken::whereNotNull('realm_id')->latest()->first();
 
         if (! $token) {
             Notification::make()
                 ->title('QuickBooks no está conectado')
                 ->danger()
                 ->send();
+
             return;
         }
 
-
-        $dataService = DataService::Configure([
-            'auth_mode'        => 'oauth2',
-            'ClientID'         => env('QB_CLIENT_ID'),
-            'ClientSecret'     => env('QB_CLIENT_SECRET'),
-            'accessTokenKey'   => $token->access_token,
-            'refreshTokenKey' => $token->refresh_token,
-            'realmId'          => (string) $token->realm_id,
-            'scope'            => env('QB_SCOPE'),
-            'baseUrl'          => env('QB_ENV'), // Development
-        ]);
-
-        $dataService->throwExceptionOnError(true);
-
-        // ✅ FORZAR MANUALMENTE EL REALM EN EL CONTEXTO (BUG DEL SDK)
-        $serviceContext = $dataService->getServiceContext();
-        $serviceContext->realmId = (string) $token->realm_id;
-
         try {
+            $dataService = app(QuickBooksService::class)->ds();
             $customers = [];
             $startPosition = 1;
             $pageSize = 1000;
@@ -102,8 +86,8 @@ class QuickBooks extends Page
 
             $this->customers = collect($customers)->map(function ($c) {
                 return [
-                    'id'    => $c->Id ?? null,
-                    'name'  => $c->DisplayName ?? $c->FullyQualifiedName ?? null,
+                    'id' => $c->Id ?? null,
+                    'name' => $c->DisplayName ?? $c->FullyQualifiedName ?? null,
                     'email' => $c->PrimaryEmailAddr->Address ?? null,
                     'phone' => $c->PrimaryPhone->FreeFormNumber ?? null,
                 ];
@@ -111,14 +95,14 @@ class QuickBooks extends Page
 
             Notification::make()
                 ->title('Customers cargados correctamente')
-                ->body(count($this->customers) . ' customers cargados.')
+                ->body(count($this->customers).' customers cargados.')
                 ->success()
                 ->send();
-        } catch (ServiceException $e) {
-            // $error = $e->getMessage();
+        } catch (\Exception $e) {
+            QuickBooksDiagnostics::failure('load-customers', $e);
             Notification::make()
                 ->title('Error al consultar QuickBooks')
-                ->body($e->getMessage())
+                ->body('No se pudo consultar QuickBooks. Inténtalo de nuevo o contacta al administrador.')
                 ->danger()
                 ->send();
         }
