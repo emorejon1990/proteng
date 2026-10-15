@@ -284,3 +284,44 @@ it('uses the two UI confirmations and supplies a private downloadable report', f
         ->assertSet('selectiveReport.passed', true)->assertSet('selectiveReport.mode', 'apply')->assertActionHidden('applyThreeInvoices');
     expect(Invoice::count())->toBe(3);
 });
+
+it('reports operational failures with exact line context in isolated Dry Run and UI', function () {
+    DB::table('asset')->where('quickbooks_id', '199')->delete();
+    $before = selectiveDatabaseRows();
+    $result = app(InvoiceSelectiveSyncService::class)->dryRun($this->actor);
+    $invoice = $result['report']['invoices']['11241'];
+    expect($result['ticket'])->toBeNull()->and($invoice['checks']['accounting_payload'])->toBeTrue()
+        ->and($invoice['checks']['operational_requirements_valid'])->toBeFalse()->and($invoice['final_state'])->toBe('requires_review')
+        ->and($invoice['operational_diagnostics'][0])->toMatchArray([
+            'code' => 'missing_asset', 'line_index' => 0, 'line_position' => 1, 'item_ref' => '199', 'item_type' => 'Inventory',
+        ])->and($invoice['import_diagnostics'])->toBe([])->and(selectiveDatabaseRows())->toBe($before);
+    Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('admin'));
+    Livewire::test(QuickBooksSync::class)->callAction('testThreeInvoices')->assertSee('missing_asset')->assertSee('Validación operativa')
+        ->callAction('downloadSelectiveReport')->assertFileDownloaded('quickbooks_selective_test.json');
+    expect(selectiveDatabaseRows())->toBe($before);
+});
+
+it('passes operational checks for legitimate nonphysical invoices without persisting Dry Run data', function () {
+    $p = $this->payloads['11241'];
+    $p['Line'][0]['SalesItemLineDetail']['ItemRef'] = '1';
+    $p['Line'][0]['SalesItemLineDetail']['Qty'] = 0.5;
+    $this->payloads['11241'] = $p;
+    $before = selectiveDatabaseRows();
+    $result = app(InvoiceSelectiveSyncService::class)->dryRun($this->actor);
+    $invoice = $result['report']['invoices']['11241'];
+    expect($result['report']['passed'])->toBeTrue()->and($invoice['final_state'])->toBe('out_of_scope')
+        ->and($invoice['checks']['operational_requirements_valid'])->toBeTrue()->and($invoice['operational_scope'])->toBe('out_of_scope')
+        ->and($invoice['operational_diagnostics'])->toBe([])->and(selectiveDatabaseRows())->toBe($before);
+});
+
+it('reports item response mismatch as import failure with preserved data in isolated Dry Run', function () {
+    $this->payloads['11241']['Line'][0]['SalesItemLineDetail']['ItemRef'] = '999';
+    $this->gateway->shouldReceive('find')->with('Item', '999')->andReturn(['Id' => '998', 'Type' => 'Service']);
+    $before = selectiveDatabaseRows();
+    $result = app(InvoiceSelectiveSyncService::class)->dryRun($this->actor);
+    $invoice = $result['report']['invoices']['11241'];
+    expect($result['ticket'])->toBeNull()->and($invoice['final_state'])->toBe('failed')
+        ->and($invoice['checks']['failed_import_preserved_data'])->toBeTrue()
+        ->and($invoice['import_diagnostics'][0])->toMatchArray(['code' => 'item_response_mismatch', 'item_ref' => '999', 'line_position' => 1])
+        ->and($invoice['operational_diagnostics'])->toBe([])->and(selectiveDatabaseRows())->toBe($before);
+});

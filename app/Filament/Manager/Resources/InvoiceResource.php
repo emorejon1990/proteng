@@ -66,20 +66,20 @@ class InvoiceResource extends Resource
             Tables\Columns\TextColumn::make('balance')->money(fn (Invoice $record) => $record->currency_code ?: 'USD'),
             Tables\Columns\TextColumn::make('status')->label('Accounting Status')->badge(),
             Tables\Columns\TextColumn::make('operation_type')->badge(),
-            Tables\Columns\TextColumn::make('operation_status')->badge()->color(fn ($state) => in_array($state, ['sync_conflict', 'requires_review']) ? 'danger' : 'success'),
+            Tables\Columns\TextColumn::make('operation_status')->badge()->formatStateUsing(fn ($state) => $state === 'out_of_scope' ? 'Fuera del alcance operativo' : $state)->color(fn ($state) => $state === 'out_of_scope' ? 'gray' : (in_array($state, ['sync_conflict', 'requires_review']) ? 'danger' : 'success')),
             Tables\Columns\TextColumn::make('sync_status')->badge(),
             Tables\Columns\TextColumn::make('workOrder.name')->label('Linked Work Order'),
         ])->filters([
             Tables\Filters\SelectFilter::make('customer_id')->relationship('customer', 'display_name')->searchable(),
             Tables\Filters\SelectFilter::make('status')->options(['paid' => 'Paid', 'open' => 'Unpaid', 'void' => 'Void']),
             Tables\Filters\SelectFilter::make('operation_type')->options(['distribution' => 'Distribution', 'installation' => 'Installation']),
-            Tables\Filters\SelectFilter::make('operation_status')->options(['unclassified' => 'Unclassified', 'created' => 'Created', 'requires_review' => 'Requires Review', 'sync_conflict' => 'Sync Conflict']),
+            Tables\Filters\SelectFilter::make('operation_status')->options(['unclassified' => 'Unclassified', 'created' => 'Created', 'requires_review' => 'Requires Review', 'sync_conflict' => 'Sync Conflict', 'out_of_scope' => 'Fuera del alcance operativo']),
             Tables\Filters\Filter::make('date')->form([Forms\Components\DatePicker::make('from'), Forms\Components\DatePicker::make('until')])
                 ->query(fn (Builder $query, array $data) => $query->when($data['from'] ?? null, fn ($q, $date) => $q->whereDate('issued_at', '>=', $date))->when($data['until'] ?? null, fn ($q, $date) => $q->whereDate('issued_at', '<=', $date))),
         ])->actions([
             Tables\Actions\ViewAction::make()->modalContent(fn (Invoice $record) => view('filament.invoices.details', ['invoice' => $record])),
             Tables\Actions\Action::make('classify')->label('Classify Invoice')->modalSubmitActionLabel('Confirm')
-                ->authorize('classify')->visible(fn (Invoice $record) => ! $record->work_order_id && ! $record->operation_type)
+                ->authorize('classify')->visible(fn (Invoice $record) => $record->operation_status !== 'out_of_scope' && ! $record->work_order_id && ! $record->operation_type)
                 ->modalContent(fn (Invoice $record) => view('filament.invoices.details', ['invoice' => $record]))
                 ->form([
                     Forms\Components\Select::make('operation_type')->options(['distribution' => 'Distribution', 'installation' => 'Installation'])->required()->live(),

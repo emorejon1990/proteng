@@ -25,6 +25,9 @@ class InvoiceClassificationService
         return DB::transaction(function () use ($id, $type, $actor, $configuration) {
             $invoice = Invoice::whereKey($id)->lockForUpdate()->firstOrFail();
             Gate::forUser($actor)->authorize('classify', $invoice);
+            if ($invoice->operation_status === 'out_of_scope') {
+                $this->fail('Esta factura está fuera del alcance operativo.');
+            }
             if ($invoice->operation_type || $invoice->work_order_id || $invoice->classified_at) {
                 $this->fail('This invoice already has an operation.');
             }

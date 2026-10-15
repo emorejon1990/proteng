@@ -104,6 +104,9 @@ class InvoiceSelectiveSyncService
                         });
                     } catch (\Throwable $e) {
                         $result ??= ['consulted' => true, 'passed' => false, 'checks' => [], 'errors' => ['Import stopped. Review the rollback verification.']];
+                        if ($e instanceof InvoiceDataException) {
+                            $result['import_diagnostics'] = [['message' => $e->getMessage()] + $e->context];
+                        }
                         $result['passed'] = false;
                         $restored = null;
                         try {

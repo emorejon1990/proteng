@@ -15,11 +15,19 @@
                                 <td>{{ $id }}</td><td>{{ $result['consulted'] ? 'Yes' : 'No' }}</td>
                                 <td>{{ $result['passed'] ? 'Passed' : 'Failed / not processed' }}</td>
                                 <td>{{ $result['change'] ?? 'not_processed' }}</td><td>{{ $result['line_count'] ?? '—' }}</td>
-                                <td>{{ $result['total'] ?? '—' }}</td><td>{{ $result['final_state'] }}</td><td>{{ $result['seconds'] }}</td>
+                                <td>{{ $result['total'] ?? '—' }}</td><td>{{ $result['final_state'] === 'out_of_scope' ? 'Fuera del alcance operativo' : $result['final_state'] }}</td><td>{{ $result['seconds'] }}</td>
                             </tr>
                             @if (($result['errors'] ?? []) !== [])
                                 <tr><td colspan="8" class="text-danger-600">{{ implode('; ', $result['errors']) }}</td></tr>
                             @endif
+                            @foreach (['import_diagnostics' => 'Importación contable', 'operational_diagnostics' => 'Validación operativa'] as $key => $label)
+                                @foreach ($result[$key] ?? [] as $diagnostic)
+                                    <tr><td colspan="8" class="text-danger-600">
+                                        {{ $label }}: {{ $diagnostic['code'] ?? 'validation_failed' }} — {{ $diagnostic['message'] }}
+                                        <pre class="whitespace-pre-wrap">{{ json_encode($diagnostic, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
+                                    </td></tr>
+                                @endforeach
+                            @endforeach
                         @endforeach
                     </tbody>
                 </table>

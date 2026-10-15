@@ -15,6 +15,8 @@ use App\Services\DistributionSelectionService;
 use App\Services\InvoiceClassificationService;
 use App\Services\InvoiceDataException;
 use App\Services\InvoiceDocumentService;
+use App\Services\InvoiceOperationalException;
+use App\Services\InvoiceRequirements;
 use App\Services\InvoiceSyncService;
 use App\Services\QuickBooksReadGateway;
 use App\Services\QuickBooksService;
@@ -181,6 +183,15 @@ it('creates a linked Installation with one assignment and uncompleted template s
         ->and($order->installation->steps()->count())->toBe(1)->and($order->installation->steps->first()->is_done)->toBeFalse()
         ->and($order->installation->assignment()->count())->toBe(1)->and($order->installation->invoice->id)->toBe($invoice->id)
         ->and($order->workOrderAssets->first()->quantity)->toBe(2);
+    $installation = $order->installation->getRawOriginal();
+    $steps = $order->installation->steps()->get()->map->getRawOriginal()->all();
+    $assignment = $order->installation->assignment()->get()->map->getRawOriginal()->all();
+    $snapshot = $invoice->fresh()->operation_snapshot;
+    $updated = importInvoice(['Balance' => '0']);
+    expect($updated->operation_status)->toBe('created')->and($updated->operation_snapshot)->toBe($snapshot)
+        ->and($order->installation->fresh()->getRawOriginal())->toBe($installation)
+        ->and($order->installation->steps()->get()->map->getRawOriginal()->all())->toBe($steps)
+        ->and($order->installation->assignment()->get()->map->getRawOriginal()->all())->toBe($assignment);
 });
 it('requires explicit valid installation configuration', function () {
     $invoice = importInvoice();
@@ -481,4 +492,166 @@ it('shows a warning notification for a partial Filament synchronization', functi
     Livewire\Livewire::test(QuickBooksSync::class)->callAction('syncInvoices')
         ->assertNotified(Notification::make()->title('Invoice sync partially completed')
             ->body('1 synchronized; 1 skipped. Review Invoice Sync Events.')->warning());
+});
+
+it('classifies physical products and fractional services without fictitious assets', function () {
+    $assetCount = Asset::count();
+    $p = invoicePayload();
+    $p['Line'][1]['SalesItemLineDetail']['Qty'] = 2.5;
+    $invoice = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($invoice->operation_status)->toBe('unclassified')
+        ->and(app(InvoiceRequirements::class)->resolve($invoice))->toBe([31 => 2])
+        ->and($invoice->lines[1]->asset_id)->toBeNull()->and(Asset::count())->toBe($assetCount);
+    $order = classifyInvoice($invoice);
+    expect($order->workOrderAssets()->pluck('quantity', 'asset_id')->all())->toBe([31 => 2]);
+});
+
+it('excludes service only invoices and blocks classification in both operation types', function ($type) {
+    $p = invoicePayload();
+    $p['Line'] = [$p['Line'][1]];
+    $p['Line'][0]['SalesItemLineDetail']['Qty'] = 0.25;
+    $invoice = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($invoice->operation_status)->toBe('out_of_scope')->and($invoice->sync_status)->toBe('synced')
+        ->and(app(InvoiceRequirements::class)->resolve($invoice, false))->toBe([]);
+    expect(fn () => classifyInvoice($invoice, $type))->toThrow(ValidationException::class);
+    expect(WorkOrder::count())->toBe(0);
+    Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('manager'));
+    Livewire\Livewire::test(ListInvoices::class)->assertTableActionHidden('classify', $invoice)->assertSee('Fuera del alcance operativo');
+})->with(['distribution', 'installation']);
+
+it('excludes recognized accounting concepts without physical products', function () {
+    $p = invoicePayload();
+    $p['Line'] = [
+        $p['Line'][2],
+        ['DetailType' => 'DiscountLineDetail', 'Amount' => 5, 'DiscountLineDetail' => []],
+        ['DetailType' => 'DescriptionOnly'],
+        ['DetailType' => 'SalesItemLineDetail', 'Amount' => 8, 'SalesItemLineDetail' => ['ItemRef' => 'SHIPPING_ITEM_ID']],
+    ];
+    $invoice = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($invoice->operation_status)->toBe('out_of_scope')->and($invoice->total)->toBe('110.00')
+        ->and($invoice->lines()->count())->toBe(4)->and($invoice->lines()->whereNotNull('asset_id')->count())->toBe(0);
+});
+
+it('preserves historical review and line identities on unchanged nonphysical payloads', function () {
+    $p = invoicePayload();
+    $p['Line'] = [$p['Line'][1]];
+    $invoice = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    $invoice->update(['operation_status' => 'requires_review']);
+    $ids = $invoice->lines()->pluck('id')->all();
+    $again = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($again->operation_status)->toBe('requires_review')->and($again->lines()->pluck('id')->all())->toBe($ids);
+});
+
+it('reports exact operational line context without losing ValidationException compatibility', function () {
+    $p = invoicePayload();
+    $p['Line'][0]['SalesItemLineDetail']['ItemRef']['value'] = '300';
+    $invoice = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($invoice->operation_status)->toBe('requires_review');
+    try {
+        app(InvoiceRequirements::class)->resolve($invoice);
+        $this->fail('Expected validation exception');
+    } catch (ValidationException $e) {
+        expect($e)->toBeInstanceOf(InvoiceOperationalException::class);
+        expect($e->diagnostic)->toBe([
+            'code' => 'missing_asset', 'message' => 'Physical item 300 needs an Asset mapping.', 'rule' => 'missing_asset',
+            'line_index' => 0, 'line_position' => 1, 'detail_type' => 'SalesItemLineDetail',
+            'item_ref' => '300', 'item_type' => 'NonInventory', 'asset_id' => null, 'asset_quickbooks_id' => null, 'quantity' => '2.000000',
+        ]);
+        expect($invoice->events()->latest('id')->first()->metadata['operational_diagnostics'])->toBe([$e->diagnostic]);
+    }
+});
+
+it('distinguishes incorrect and duplicate asset associations', function ($duplicate) {
+    $invoice = importInvoice();
+    if ($duplicate) {
+        // Simulate an inconsistent legacy catalog only in this in-memory test database.
+        DB::statement('DROP INDEX asset_quickbooks_id_unique');
+        DB::table('asset')->insert(['name' => 'Duplicate', 'weight' => 1, 'weight_tolerance' => 1, 'quickbooks_id' => '100']);
+        $expected = 'duplicate_asset';
+    } else {
+        DB::table('asset')->where('id', 31)->update(['quickbooks_id' => '999']);
+        $expected = 'mismatched_asset';
+    }
+    try {
+        app(InvoiceRequirements::class)->resolve($invoice);
+        $this->fail('Expected validation exception');
+    } catch (InvoiceOperationalException $e) {
+        expect($e->diagnostic['code'])->toBe($expected)->and($e->diagnostic['asset_id'])->toBe(31);
+    }
+    $p = invoicePayload(['Balance' => '1']);
+    $updated = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($updated->operation_status)->toBe('requires_review');
+})->with([false, true]);
+
+it('reports strict physical quantity failures including accumulation', function ($qty, $code, $repeat) {
+    $p = invoicePayload();
+    $p['Line'][0]['SalesItemLineDetail']['Qty'] = $qty;
+    if ($repeat) {
+        $p['Line'][1] = $p['Line'][0];
+        $p['Line'][1]['Id'] = '2';
+    }
+    $invoice = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($invoice->operation_status)->toBe('requires_review');
+    $diagnostic = $invoice->events()->latest('id')->first()->metadata['operational_diagnostics'][0];
+    expect($diagnostic['code'])->toBe($code)->and($diagnostic['quantity'])->toBe($qty)
+        ->and($diagnostic['line_position'])->toBe($repeat ? 2 : 1);
+})->with([
+    [0, 'invalid_physical_quantity', false], [-1, 'invalid_physical_quantity', false],
+    [2.5, 'invalid_physical_quantity', false], [2.0000001, 'invalid_physical_quantity', false],
+    [2147483648, 'physical_quantity_limit', false], [2147483647, 'accumulated_quantity_limit', true],
+]);
+
+it('keeps unknown item types in review', function () {
+    $this->gateway->shouldReceive('find')->with('Item', '900')->andReturn(['Id' => '900', 'Type' => 'Unknown']);
+    $p = invoicePayload();
+    $p['Line'][0]['SalesItemLineDetail']['ItemRef']['value'] = '900';
+    $invoice = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($invoice->operation_status)->toBe('requires_review')
+        ->and($invoice->events()->latest('id')->first()->metadata['operational_diagnostics'][0]['code'])->toBe('unknown_item_type');
+});
+
+it('rejects mismatched or absent item identity before changing saved accounting data', function ($response) {
+    $invoice = importInvoice();
+    $before = $invoice->getRawOriginal();
+    $ids = $invoice->lines()->pluck('id')->all();
+    $this->gateway->shouldReceive('find')->with('Item', '900')->andReturn($response);
+    $p = invoicePayload();
+    $p['Line'][0]['SalesItemLineDetail']['ItemRef']['value'] = '900';
+    try {
+        app(InvoiceSyncService::class)->import($p, 'realm-one');
+        $this->fail('Expected import exception');
+    } catch (InvoiceDataException $e) {
+        expect($e->context)->toMatchArray(['code' => 'item_response_mismatch', 'line_index' => 0, 'item_ref' => '900']);
+    }
+    expect($invoice->fresh()->getRawOriginal())->toBe($before)->and($invoice->lines()->pluck('id')->all())->toBe($ids);
+})->with([[['Id' => '901', 'Type' => 'Service']], [['Type' => 'Inventory']]]);
+
+it('prioritizes conflicts when linked physical products are replaced by services', function () {
+    $invoice = importInvoice();
+    $order = classifyInvoice($invoice);
+    $snapshot = $invoice->fresh()->operation_snapshot;
+    $quantities = $order->workOrderAssets()->pluck('quantity', 'asset_id')->all();
+    $p = invoicePayload();
+    $p['Line'] = [$p['Line'][1]];
+    $updated = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($updated->operation_status)->toBe('sync_conflict')->and($updated->operation_snapshot)->toBe($snapshot)
+        ->and($updated->work_order_id)->toBe($order->id)->and($order->workOrderAssets()->pluck('quantity', 'asset_id')->all())->toBe($quantities);
+});
+
+it('diagnoses unresolved groups and unsupported stored lines', function ($detailType, $code) {
+    $invoice = importInvoice();
+    $invoice->lines()->first()->update(['detail_type' => $detailType]);
+    try {
+        app(InvoiceRequirements::class)->resolve($invoice, false);
+        $this->fail('Expected validation exception');
+    } catch (InvoiceOperationalException $e) {
+        expect($e->diagnostic)->toMatchArray(['code' => $code, 'line_index' => 0, 'detail_type' => $detailType]);
+    }
+})->with([['GroupLineDetail', 'grouped_line'], ['UnknownLineDetail', 'unsupported_line']]);
+
+it('keeps a physical only invoice unclassified', function () {
+    $p = invoicePayload();
+    $p['Line'] = [$p['Line'][0]];
+    $invoice = app(InvoiceSyncService::class)->import($p, 'realm-one');
+    expect($invoice->operation_status)->toBe('unclassified')->and(app(InvoiceRequirements::class)->resolve($invoice))->toBe([31 => 2]);
 });

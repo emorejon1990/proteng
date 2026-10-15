@@ -95,7 +95,9 @@ class InvoiceSelectiveSandbox
                 } catch (\Throwable $e) {
                     $results[$id] = ['consulted' => true, 'passed' => false, 'errors' => [
                         $e instanceof InvoiceDataException ? $e->getMessage() : 'Isolated import failed.',
-                    ], 'checks' => ['failed_import_preserved_data' => $before === $verifier->snapshot($id)], 'final_state' => 'failed'];
+                    ], 'import_diagnostics' => $e instanceof InvoiceDataException ? [['message' => $e->getMessage()] + $e->context] : [],
+                        'operational_diagnostics' => [], 'operational_scope' => 'not_evaluated',
+                        'checks' => ['failed_import_preserved_data' => $before === $verifier->snapshot($id)], 'final_state' => 'failed'];
                 }
                 $results[$id]['seconds'] = round(microtime(true) - $started, 3);
             }

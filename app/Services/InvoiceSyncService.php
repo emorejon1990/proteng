@@ -143,10 +143,22 @@ class InvoiceSyncService
             if ($itemId && ! $shipping) {
                 $this->gateway->realm();
                 $item = $this->itemCache[$itemId] ?? $this->gateway->find('Item', $itemId);
+                $itemContext = ['code' => 'item_response_mismatch', 'rule' => 'item_response_identity',
+                    'line_index' => $number, 'line_position' => $number + 1, 'detail_type' => $line['DetailType'],
+                    'item_ref' => $itemId, 'item_type' => is_string($item['Type'] ?? null) ? $item['Type'] : null,
+                    'quantity' => $detail['Qty'] ?? null, 'asset_id' => null, 'asset_quickbooks_id' => null];
+                try {
+                    $returnedId = QuickBooksReadGateway::entityRef($item['Id'] ?? null);
+                } catch (InvoiceDataException $e) {
+                    throw new InvoiceDataException('Item response identity is missing or invalid; previous data preserved.', $itemContext);
+                }
+                if ($returnedId !== $itemId) {
+                    throw new InvoiceDataException('Item response does not match the requested ItemRef; previous data preserved.', $itemContext);
+                }
                 if ($this->itemCache !== null) {
                     $this->itemCache[$itemId] = $item;
                 }
-                $itemType = $item['Type'] ?? null;
+                $itemType = is_string($item['Type'] ?? null) ? $item['Type'] : null;
                 if (in_array($itemType, ['Inventory', 'NonInventory'], true)) {
                     $matches = Asset::where('quickbooks_id', $itemId)->limit(2)->get();
                     $asset = $matches->count() === 1 ? $matches->first() : null;
@@ -194,10 +206,12 @@ class InvoiceSyncService
             $invoice->save();
             $invoice->lines()->delete();
             $invoice->lines()->createMany($lines);
+            $diagnostics = [];
             try {
                 $current = $this->requirements->resolve($invoice, false);
             } catch (ValidationException $e) {
                 $current = null;
+                $diagnostics = InvoiceOperationalException::diagnostics($e);
             }
             if ($invoice->work_order_id) {
                 $snapshot = $invoice->operation_snapshot;
@@ -209,10 +223,10 @@ class InvoiceSyncService
                         'metadata' => ['snapshot' => $snapshot, 'current_requirements' => $current, 'accounting_status' => $invoice->status]]);
                 }
             } else {
-                $invoice->operation_status = $current === null || ! $current ? 'requires_review' : 'unclassified';
+                $invoice->operation_status = $current === null ? 'requires_review' : ($current ? 'unclassified' : 'out_of_scope');
             }
             $invoice->save();
-            $invoice->events()->create(['event' => $new ? 'Invoice Imported' : ($changed ? 'Invoice Updated' : 'Invoice Unchanged'), 'metadata' => ['quickbooks_id' => $invoice->quickbooks_id]]);
+            $invoice->events()->create(['event' => $new ? 'Invoice Imported' : ($changed ? 'Invoice Updated' : 'Invoice Unchanged'), 'metadata' => ['quickbooks_id' => $invoice->quickbooks_id, 'operational_diagnostics' => $diagnostics]]);
             app(QuickBooksSyncLock::class)->assertOwned();
 
             return $invoice->fresh();
@@ -244,7 +258,7 @@ class InvoiceSyncService
             throw new InvoiceDataException('Incomplete line; previous data was preserved.');
         }
         if (! in_array($line['DetailType'], ['SalesItemLineDetail', 'SubTotalLineDetail', 'DiscountLineDetail', 'GroupLineDetail', 'DescriptionOnly'], true)) {
-            throw new InvoiceDataException('Unsupported invoice line type; previous data preserved.', ['line_index' => $number, 'line_type' => 'unsupported']);
+            throw new InvoiceDataException('Unsupported invoice line type; previous data preserved.', ['code' => 'unsupported_line', 'rule' => 'supported_accounting_line', 'line_index' => $number, 'line_position' => $number + 1, 'line_type' => 'unsupported']);
         }
         $detail = $line[$line['DetailType']] ?? [];
         // The installed SDK represents an empty subtotal XML element as an empty string.

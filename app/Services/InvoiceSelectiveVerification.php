@@ -106,14 +106,20 @@ class InvoiceSelectiveVerification
         $add('conflict_not_resolved', ($original['operation_status'] ?? null) !== 'sync_conflict' || $invoice->operation_status === 'sync_conflict');
         $unchanged = $original && InvoiceSyncService::payloadMatches(json_decode($original['raw_payload'] ?? 'null', true), $stored);
         $add('unchanged_line_ids', ! $unchanged || array_column($before['lines'], 'id') === array_column($after['lines'], 'id'));
+        $diagnostics = [];
+        $scope = 'invalid';
         try {
-            app(InvoiceRequirements::class)->resolve($invoice, false);
+            $requirements = app(InvoiceRequirements::class)->resolve($invoice, false);
+            $scope = $requirements ? 'physical' : 'out_of_scope';
             $add('operational_requirements_valid', true);
         } catch (ValidationException $e) {
+            $diagnostics = InvoiceOperationalException::diagnostics($e);
             $add('operational_requirements_valid', false);
         }
 
         return [
+            'operational_diagnostics' => $diagnostics, 'operational_scope' => $scope,
+            'import_diagnostics' => [],
             'passed' => ! in_array(false, $checks, true), 'checks' => $checks,
             'change' => $invoice->operation_status === 'sync_conflict' ? 'conflict' : (! $original ? 'new' : ($unchanged ? 'unchanged' : 'modified')),
             'line_count' => $lines->count(), 'total' => (string) $invoice->total, 'final_state' => $invoice->operation_status,
