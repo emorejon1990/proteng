@@ -27,7 +27,7 @@ class InvoiceSelectiveSyncService
             if (Invoice::whereNotNull('realm_id')->where('realm_id', '!=', $realm)->exists()) {
                 throw new \RuntimeException('Existing invoice company differs from the connected company.');
             }
-            $count = $this->gateway->invoiceCount();
+            $count = $this->gateway->invoiceCount(true);
             $positions = [];
             // Floyd sampling: uniform sampling without replacement, O(50) memory.
             for ($n = $count - min(self::SAMPLE_SIZE, $count) + 1; $n <= $count; $n++) {
@@ -42,9 +42,9 @@ class InvoiceSelectiveSyncService
                 'report' => ['mode' => 'dry_run', 'status' => $count ? 'running' : 'completed',
                     'created_at' => now()->toIso8601String(), 'passed' => $count === 0,
                     'company' => ['realm_id' => $realm, 'environment' => $environment],
-                    'available_invoices' => $count, 'requested_count' => self::SAMPLE_SIZE,
+                    'available_invoices' => $count, 'pending_invoices_found' => $count, 'selection_filter' => 'Balance > 0', 'requested_count' => self::SAMPLE_SIZE,
                     'selected_positions' => $positions, 'selected_ids' => [], 'invoices' => [], 'errors' => [],
-                    'notice' => $count < self::SAMPLE_SIZE ? 'QuickBooks has fewer than 50 invoices; all available invoices are included.' : null]];
+                    'notice' => $count < self::SAMPLE_SIZE ? 'QuickBooks has '.$count.' invoices with a pending balance; all available pending invoices are selected.' : null]];
             $this->save($run, $state);
 
             return ['report' => $state['report'], 'run_id' => $run, 'ticket' => null];
@@ -95,7 +95,7 @@ class InvoiceSelectiveSyncService
         $id = $state['pending']['id'] ?? 'position:'.$position;
         try {
             if ($state['pending'] === null) {
-                $page = $this->gateway->page('Invoice', $position, 1);
+                $page = $this->gateway->page('Invoice', $position, 1, true);
                 if (count($page) !== 1) {
                     throw new InvoiceDataException('Selected invoice is no longer available.');
                 }
@@ -109,27 +109,60 @@ class InvoiceSelectiveSyncService
                     return;
                 }
                 $state['report']['selected_ids'][] = $id;
-                $state['report']['invoices'][$id] = ['consulted' => true, 'passed' => false, 'change' => 'pending',
+                $state['report']['invoices'][$id] = ['invoice_number' => isset($payload['DocNumber']) ? (string) $payload['DocNumber'] : null,
+                    'consulted' => true, 'passed' => false, 'change' => 'pending',
                     'line_count' => count($payload['Line'] ?? []), 'total' => $payload['TotalAmt'] ?? null,
                     'balance' => $payload['Balance'] ?? null, 'final_state' => 'pending', 'seconds' => 0, 'errors' => []];
-                $queue = [];
+                $state['pending'] = ['id' => $id, 'payload' => $payload, 'queue' => [], 'refreshed' => false];
+
+                return;
+            }
+            $pending = &$state['pending'];
+            if (empty($pending['refreshed'])) {
+                // Re-read the selected ID, not its potentially shifted position, before reading Items.
+                $payload = $this->gateway->find('Invoice', $id);
+                if (QuickBooksReadGateway::entityRef($payload['Id'] ?? null) !== $id) {
+                    throw new InvoiceDataException('Selected invoice identity changed.');
+                }
+                $pending['payload'] = $payload;
+                $pending['refreshed'] = true;
+                $pending['queue'] = [];
                 foreach ($payload['Line'] ?? [] as $line) {
                     if (($line['DetailType'] ?? null) === 'SalesItemLineDetail') {
                         try {
                             $ref = QuickBooksReadGateway::ref($line['SalesItemLineDetail']['ItemRef'] ?? null);
                             if ($ref !== 'SHIPPING_ITEM_ID') {
-                                $queue[QuickBooksReadGateway::entityRef($ref)] = 0;
+                                $pending['queue'][QuickBooksReadGateway::entityRef($ref)] = 0;
                             }
                         } catch (InvoiceDataException $e) {
                             // Existing filter diagnostics handle invalid references.
                         }
                     }
                 }
-                $state['pending'] = ['id' => $id, 'payload' => $payload, 'queue' => $queue];
+                $row = &$state['report']['invoices'][$id];
+                $row['invoice_number'] = isset($payload['DocNumber']) ? (string) $payload['DocNumber'] : null;
+                $row['total'] = $payload['TotalAmt'] ?? null;
+                $row['balance'] = $payload['Balance'] ?? null;
+                $row['line_count'] = count($payload['Line'] ?? []);
 
                 return;
             }
-            $pending = &$state['pending'];
+            $payload = $pending['payload'];
+            // Evaluate payment alone first; excluded invoices do not need Item/category reads.
+            $payment = app(InvoiceRequirements::class)->filters(array_replace($payload, ['Line' => []]), fn () => []);
+            if ($payment['payment_filter'] === 'excluded') {
+                $payment['category_filter'] = 'not_evaluated';
+                $payment['result'] = 'excluded';
+                $before = $this->verification->snapshot($id);
+                $result = ['invoice_number' => isset($payload['DocNumber']) ? (string) $payload['DocNumber'] : null,
+                    'consulted' => true] + $this->verification->filtered($payload, $before, $payment);
+                $result['seconds'] = $state['report']['invoices'][$id]['seconds'];
+                $state['report']['invoices'][$id] = $result;
+                $state['pending'] = null;
+                $state['offset']++;
+
+                return;
+            }
             // Expand cached parent chains locally; fetch only the first unresolved Item/category.
             do {
                 $expanded = false;
@@ -186,6 +219,7 @@ class InvoiceSelectiveSyncService
             [$input['local'], $input['states']] = DB::transaction(fn () => $this->localState($input, $state['schema'] ?? []));
             $state['schema'] ??= array_map(fn ($table) => ['columns' => $table['columns'], 'indexes' => $table['indexes']], $input['local']);
             $result = $this->sandbox->run($input)[$id];
+            $result = ['invoice_number' => isset($payload['DocNumber']) ? (string) $payload['DocNumber'] : null] + $result;
             $result['seconds'] = $state['report']['invoices'][$id]['seconds'];
             $result['technical_error'] = (bool) array_intersect_key($state['failed_items'], $pending['queue']) || $result['final_state'] === 'failed';
             $state['report']['invoices'][$id] = $result;
@@ -193,6 +227,7 @@ class InvoiceSelectiveSyncService
             $state['offset']++;
         } catch (\Throwable $e) {
             $state['report']['invoices'][$id] = array_replace($state['report']['invoices'][$id] ?? [], [
+                'invoice_number' => $state['report']['invoices'][$id]['invoice_number'] ?? null,
                 'consulted' => ! str_starts_with((string) $id, 'position:'), 'passed' => false, 'technical_error' => true,
                 'change' => 'not_processed', 'final_state' => 'failed', 'selection_result' => 'review',
                 'line_count' => null, 'total' => null, 'balance' => null,
@@ -217,6 +252,7 @@ class InvoiceSelectiveSyncService
     private function save(string $run, array &$state): void
     {
         $summary = ['selected' => count($state['report']['selected_positions']), 'consulted' => 0, 'pending_or_partial' => 0,
+            'pending_found' => $state['report']['pending_invoices_found'] ?? $state['report']['available_invoices'], 'without_product' => 0, 'candidates' => 0,
             'paid' => 0, 'with_product' => 0, 'excluded_payment' => 0, 'excluded_category' => 0,
             'both_filters' => 0, 'review' => 0, 'technical_errors' => 0, 'processed' => $state['offset']];
         foreach ($state['report']['invoices'] as $row) {
@@ -225,6 +261,8 @@ class InvoiceSelectiveSyncService
             $summary['pending_or_partial'] += in_array($filters['payment_state'] ?? null, ['pending', 'partial'], true);
             $summary['paid'] += ($filters['payment_state'] ?? null) === 'paid';
             $summary['with_product'] += ($filters['product_items'] ?? 0) > 0;
+            $summary['without_product'] += ($filters['category_filter'] ?? null) === 'excluded';
+            $summary['candidates'] += ($row['selection_result'] ?? null) === 'candidate';
             $summary['excluded_payment'] += ($filters['payment_filter'] ?? null) === 'excluded';
             $summary['excluded_category'] += ($filters['category_filter'] ?? null) === 'excluded';
             $summary['both_filters'] += ($filters['payment_filter'] ?? null) === 'passed' && ($filters['category_filter'] ?? null) === 'passed';

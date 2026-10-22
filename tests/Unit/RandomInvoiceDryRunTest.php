@@ -10,6 +10,7 @@ use App\Services\QuickBooksReadGateway;
 use App\Services\QuickBooksService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
+use QuickBooksOnline\API\DataService\DataService;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -35,8 +36,10 @@ beforeEach(function () {
     $this->instance(QuickBooksService::class, $qb);
     $this->gateway = Mockery::mock(QuickBooksReadGateway::class);
     $this->gateway->shouldReceive('realm')->andReturn('fixture-realm');
-    $this->gateway->shouldReceive('find')->with('Item', '100')->andReturn(['Id' => '100', 'Type' => 'Inventory', 'ParentRef' => '900']);
-    $this->gateway->shouldReceive('find')->with('Item', '900')->andReturn(['Id' => '900', 'Type' => 'Category', 'Name' => 'Product']);
+    $this->gateway->shouldReceive('find')->with('Item', '100')->andReturn(['Id' => '100', 'Type' => 'Inventory', 'ParentRef' => '900'])->byDefault();
+    $this->gateway->shouldReceive('find')->with('Item', '900')->andReturn(['Id' => '900', 'Type' => 'Category', 'Name' => 'Product'])->byDefault();
+    $this->gateway->shouldReceive('find')->with('Invoice', Mockery::any())
+        ->andReturnUsing(fn ($entity, $id) => randomDryRunPayload($id))->byDefault();
     $this->instance(QuickBooksReadGateway::class, $this->gateway);
 });
 
@@ -44,7 +47,7 @@ afterEach(fn () => DB::disconnect('sqlite'));
 
 function randomDryRunPayload(string $id): array
 {
-    return ['Id' => $id, 'CustomerRef' => '10', 'TotalAmt' => 10, 'Balance' => 0, 'TxnDate' => '2026-10-22',
+    return ['Id' => $id, 'DocNumber' => '000-'.$id.'-A', 'CustomerRef' => '10', 'TotalAmt' => 10, 'Balance' => 10, 'TxnDate' => '2026-10-22',
         'Line' => [['Id' => '1', 'Amount' => 10, 'DetailType' => 'SalesItemLineDetail',
             'SalesItemLineDetail' => ['ItemRef' => '100', 'Qty' => 1]]]];
 }
@@ -61,7 +64,7 @@ function finishRandomDryRun(InvoiceSelectiveSyncService $service, User $actor, s
 }
 
 it('draws exactly 50 distinct positions without listing the invoice catalog', function () {
-    $this->gateway->shouldReceive('invoiceCount')->once()->andReturn(10000);
+    $this->gateway->shouldReceive('invoiceCount')->with(true)->once()->andReturn(10000);
     $this->gateway->shouldNotReceive('page');
     $run = app(InvoiceSelectiveSyncService::class)->dryRun($this->actor);
     expect($run['ticket'])->toBeNull()->and($run['report']['selected_positions'])->toHaveCount(50)
@@ -70,15 +73,15 @@ it('draws exactly 50 distinct positions without listing the invoice catalog', fu
         ->and(max($run['report']['selected_positions']))->toBeLessThanOrEqual(10000);
 });
 
-it('processes a stable 50 invoice sample caching Items and keeping exclusions out of technical errors', function () {
-    $this->gateway->shouldReceive('invoiceCount')->once()->andReturn(80);
-    $this->gateway->shouldReceive('page')->with('Invoice', Mockery::type('int'), 1)->times(50)
+it('processes a stable 50 pending invoice sample caching Items', function () {
+    $this->gateway->shouldReceive('invoiceCount')->with(true)->once()->andReturn(80);
+    $this->gateway->shouldReceive('page')->with('Invoice', Mockery::type('int'), 1, true)->times(50)
         ->andReturnUsing(fn ($entity, $position) => [randomDryRunPayload((string) (1000 + $position))]);
     $sandbox = Mockery::mock(InvoiceSelectiveSandbox::class);
     $sandbox->shouldReceive('run')->times(50)->andReturnUsing(function ($input) {
         $id = $input['ids'][0];
 
-        return [$id => ['consulted' => true, 'passed' => true, 'final_state' => 'excluded', 'selection_result' => 'excluded',
+        return [$id => ['consulted' => true, 'passed' => true, 'final_state' => 'unclassified', 'selection_result' => 'candidate',
             'filters' => $input['filters'][$id], 'errors' => [], 'seconds' => 0]];
     });
     $this->instance(InvoiceSelectiveSandbox::class, $sandbox);
@@ -88,16 +91,16 @@ it('processes a stable 50 invoice sample caching Items and keeping exclusions ou
     expect($report['selected_positions'])->toBe($run['report']['selected_positions'])
         ->and($report['selected_ids'])->toHaveCount(50)->and(count(array_unique($report['selected_ids'])))->toBe(50)
         ->and($report['summary'])->toMatchArray(['selected' => 50, 'consulted' => 50, 'processed' => 50,
-            'paid' => 50, 'excluded_payment' => 50, 'technical_errors' => 0, 'with_product' => 50])
+            'pending_found' => 80, 'candidates' => 50, 'paid' => 0, 'excluded_payment' => 0, 'technical_errors' => 0, 'with_product' => 50])
         ->and($report['passed'])->toBeTrue()->and(Invoice::count())->toBe(0)->and(DB::table('work_orders')->count())->toBe(0);
     $this->gateway->shouldHaveReceived('find')->with('Item', '100')->once();
     $this->gateway->shouldHaveReceived('find')->with('Item', '900')->once();
 });
 
 it('runs the real isolated subprocess for a dynamic scope and retains other results on an invoice read failure', function () {
-    $this->gateway->shouldReceive('invoiceCount')->once()->andReturn(2);
-    $this->gateway->shouldReceive('page')->with('Invoice', 1, 1)->once()->andReturn([randomDryRunPayload('700')]);
-    $this->gateway->shouldReceive('page')->with('Invoice', 2, 1)->once()->andThrow(new RuntimeException('unavailable'));
+    $this->gateway->shouldReceive('invoiceCount')->with(true)->once()->andReturn(2);
+    $this->gateway->shouldReceive('page')->with('Invoice', 1, 1, true)->once()->andReturn([randomDryRunPayload('700')]);
+    $this->gateway->shouldReceive('page')->with('Invoice', 2, 1, true)->once()->andThrow(new RuntimeException('unavailable'));
     $service = app(InvoiceSelectiveSyncService::class);
     $run = $service->dryRun($this->actor);
     $report = finishRandomDryRun($service, $this->actor, $run['run_id']);
@@ -108,8 +111,8 @@ it('runs the real isolated subprocess for a dynamic scope and retains other resu
 });
 
 it('stops on shifted listing duplicates without silently drawing replacements', function () {
-    $this->gateway->shouldReceive('invoiceCount')->once()->andReturn(2);
-    $this->gateway->shouldReceive('page')->with('Invoice', Mockery::type('int'), 1)->twice()->andReturn([randomDryRunPayload('700')]);
+    $this->gateway->shouldReceive('invoiceCount')->with(true)->once()->andReturn(2);
+    $this->gateway->shouldReceive('page')->with('Invoice', Mockery::type('int'), 1, true)->twice()->andReturn([randomDryRunPayload('700')]);
     $service = app(InvoiceSelectiveSyncService::class);
     $run = $service->dryRun($this->actor);
     $report = finishRandomDryRun($service, $this->actor, $run['run_id']);
@@ -118,10 +121,10 @@ it('stops on shifted listing duplicates without silently drawing replacements', 
 });
 
 it('hides Apply and downloads the existing report for an empty company', function () {
-    $this->gateway->shouldReceive('invoiceCount')->once()->andReturn(0);
+    $this->gateway->shouldReceive('invoiceCount')->with(true)->once()->andReturn(0);
     Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('admin'));
     Livewire\Livewire::test(QuickBooksSync::class)->assertActionHidden('applyThreeInvoices')
-        ->callAction('testThreeInvoices')->assertSee('Test 50 Random Invoices')->assertSee('Seleccionadas')
+        ->callAction('testThreeInvoices')->assertSee('Test 50 Pending Invoices')->assertSee('Seleccionadas')
         ->callAction('downloadSelectiveReport')->assertFileDownloaded('quickbooks_selective_test.json');
     expect(Invoice::count())->toBe(0);
 });
@@ -139,14 +142,68 @@ it('rejects even a forged Apply ticket on the server before reading or importing
 });
 
 it('advances the existing Livewire action with short polls and never reveals Apply', function () {
-    $this->gateway->shouldReceive('invoiceCount')->once()->andReturn(1);
-    $this->gateway->shouldReceive('page')->with('Invoice', 1, 1)->once()->andReturn([randomDryRunPayload('810')]);
+    $this->gateway->shouldReceive('invoiceCount')->with(true)->once()->andReturn(1);
+    $this->gateway->shouldReceive('page')->with('Invoice', 1, 1, true)->once()->andReturn([randomDryRunPayload('810')]);
     Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('admin'));
     $page = Livewire\Livewire::test(QuickBooksSync::class)->callAction('testThreeInvoices');
     for ($tick = 0; $tick < 8 && $page->get('selectiveRunId') !== null; $tick++) {
         $page->call('continueSelectiveDryRun')->assertActionHidden('applyThreeInvoices');
     }
-    $page->assertSet('selectiveRunId', null)->assertSee('Pagada')->assertSee('Excluida')
+    $page->assertSet('selectiveRunId', null)->assertSee('Pendiente')->assertSee('Candidata')->assertSee('Invoice No.')->assertSee('000-810-A')
         ->callAction('downloadSelectiveReport')->assertFileDownloaded('quickbooks_selective_test.json');
-    expect($page->get('selectiveReport')['selected_ids'])->toBe(['810'])->and(Invoice::count())->toBe(0);
+    expect($page->get('selectiveReport')['selected_ids'])->toBe(['810'])
+        ->and($page->get('selectiveReport')['invoices'][810]['invoice_number'])->toBe('000-810-A')
+        ->and(Invoice::count())->toBe(0);
+});
+
+it('excludes a selected invoice paid before consultation without reading any Items', function () {
+    $this->gateway->shouldReceive('invoiceCount')->with(true)->once()->andReturn(1);
+    $this->gateway->shouldReceive('page')->with('Invoice', 1, 1, true)->once()->andReturn([randomDryRunPayload('811')]);
+    $paid = randomDryRunPayload('811');
+    $paid['Balance'] = 0;
+    $this->gateway->shouldReceive('find')->with('Invoice', '811')->once()->andReturn($paid);
+    $this->gateway->shouldNotReceive('find')->with('Item', Mockery::any());
+    $service = app(InvoiceSelectiveSyncService::class);
+    $run = $service->dryRun($this->actor);
+    $report = finishRandomDryRun($service, $this->actor, $run['run_id']);
+    expect($report['invoices'][811]['filters']['payment_state'])->toBe('paid')
+        ->and($report['invoices'][811]['filters']['category_filter'])->toBe('not_evaluated')
+        ->and($report['invoices'][811]['selection_result'])->toBe('excluded')
+        ->and($report['invoices'][811]['invoice_number'])->toBe('000-811-A')
+        ->and($report['summary']['technical_errors'])->toBe(0)->and(Invoice::count())->toBe(0);
+});
+
+it('keeps a missing DocNumber null without substituting the QuickBooks ID', function () {
+    $this->gateway->shouldReceive('invoiceCount')->with(true)->once()->andReturn(1);
+    $payload = randomDryRunPayload('812');
+    unset($payload['DocNumber']);
+    $this->gateway->shouldReceive('page')->with('Invoice', 1, 1, true)->once()->andReturn([$payload]);
+    $this->gateway->shouldReceive('find')->with('Invoice', '812')->once()->andReturn($payload);
+    $service = app(InvoiceSelectiveSyncService::class);
+    $run = $service->dryRun($this->actor);
+    $report = finishRandomDryRun($service, $this->actor, $run['run_id']);
+    expect($report['invoices'][812])->toHaveKey('invoice_number')
+        ->and($report['invoices'][812]['invoice_number'])->toBeNull()
+        ->and($report['invoices'][812]['selection_result'])->toBe('candidate');
+});
+
+it('adds Balance filtering only to the explicitly requested QuickBooks queries', function () {
+    $sdk = Mockery::mock(DataService::class);
+    $sdk->shouldReceive('Query')->with("SELECT COUNT(*) FROM Invoice WHERE Balance > '0'")->once()->andReturn(5);
+    $sdk->shouldReceive('Query')->with("SELECT * FROM Invoice WHERE Balance > '0' ORDERBY Id STARTPOSITION 3 MAXRESULTS 1")
+        ->once()->andReturn([randomDryRunPayload('813')]);
+    $sdk->shouldReceive('Query')->with('SELECT COUNT(*) FROM Invoice')->once()->andReturn(100);
+    $sdk->shouldReceive('getLastError')->andReturn(false);
+    $qb = Mockery::mock(QuickBooksService::class);
+    $qb->shouldReceive('ds')->with('fixture-realm')->andReturn($sdk);
+    $gateway = new class($qb) extends QuickBooksReadGateway
+    {
+        public function realm(): string
+        {
+            return 'fixture-realm';
+        }
+    };
+    expect($gateway->invoiceCount(true))->toBe(5)
+        ->and($gateway->page('Invoice', 3, 1, true)[0]['DocNumber'])->toBe('000-813-A')
+        ->and($gateway->invoiceCount())->toBe(100);
 });

@@ -28,13 +28,16 @@ class QuickBooksReadGateway
         return $this->expectedRealm = (string) $realm;
     }
 
-    public function page(string $entity, int $position, int $size = 100): array
+    public function page(string $entity, int $position, int $size = 100, bool $pendingOnly = false): array
     {
         if (! in_array($entity, ['Invoice', 'Customer', 'Item'], true)) {
             throw new \InvalidArgumentException('Unsupported entity.');
         }
+        if ($pendingOnly && $entity !== 'Invoice') {
+            throw new \InvalidArgumentException('Pending balance selection only supports invoices.');
+        }
         $ds = $this->qb->ds($this->realm());
-        $active = in_array($entity, ['Customer', 'Item'], true) ? ' WHERE Active IN (true, false)' : '';
+        $active = $pendingOnly ? " WHERE Balance > '0'" : (in_array($entity, ['Customer', 'Item'], true) ? ' WHERE Active IN (true, false)' : '');
         $result = $ds->Query("SELECT * FROM {$entity}{$active} ORDERBY Id STARTPOSITION {$position} MAXRESULTS {$size}");
         $this->check($ds);
         if ($result === null) {
@@ -47,10 +50,10 @@ class QuickBooksReadGateway
         return array_map(self::payload(...), $result);
     }
 
-    public function invoiceCount(): int
+    public function invoiceCount(bool $pendingOnly = false): int
     {
         $ds = $this->qb->ds($this->realm());
-        $count = $ds->Query('SELECT COUNT(*) FROM Invoice');
+        $count = $ds->Query('SELECT COUNT(*) FROM Invoice'.($pendingOnly ? " WHERE Balance > '0'" : ''));
         $this->check($ds);
         if (! is_int($count) || $count < 0) {
             throw new \RuntimeException('QuickBooks returned an invalid invoice count.');

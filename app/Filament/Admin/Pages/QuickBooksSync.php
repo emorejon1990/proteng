@@ -63,12 +63,12 @@ class QuickBooksSync extends Page
     {
         return [
             Action::make('testThreeInvoices')
-                ->label('Test 50 Random Invoices')
+                ->label('Test 50 Pending Invoices')
                 ->disabled(fn () => $this->selectiveRunId !== null)
                 ->visible(fn () => Auth::user()?->hasRole('Admin') && ! Auth::user()->hasRole('Customer'))
                 ->requiresConfirmation()
-                ->modalHeading('Dry Run: 50 random invoices')
-                ->modalDescription('Draw up to 50 distinct invoices without payment or category prefilters. Process in short requests using isolated SQLite. Keep this page open; Apply is disabled.')
+                ->modalHeading('Dry Run: up to 50 pending invoices')
+                ->modalDescription('Select up to 50 distinct invoices with Balance > 0, including partial payments. Recheck payment before reading Items; simulate in isolated SQLite. Keep this page open; Apply is disabled.')
                 ->modalSubmitActionLabel('Confirm Dry Run')
                 ->action(function () {
                     $this->selectiveTicket = null;
@@ -76,7 +76,7 @@ class QuickBooksSync extends Page
                         $result = app(InvoiceSelectiveSyncService::class)->dryRun(Auth::user());
                         $this->selectiveReport = $result['report'];
                         $this->selectiveRunId = $this->selectiveReport['status'] === 'running' ? $result['run_id'] : null;
-                        Notification::make()->title('Random Dry Run prepared. Apply is disabled.')->info()->send();
+                        Notification::make()->title('Pending invoices Dry Run prepared. Apply is disabled.')->info()->send();
                     } catch (\Throwable $e) {
                         Notification::make()->title('Selective test unavailable')->body('Check authorization or wait for the current synchronization to finish.')->danger()->send();
                     }

@@ -22,7 +22,7 @@ class QuickBooksCapturedReadGateway extends QuickBooksReadGateway
         return $this->responses[$entity][$id];
     }
 
-    public function page(string $entity, int $position, int $size = 100): array
+    public function page(string $entity, int $position, int $size = 100, bool $pendingOnly = false): array
     {
         throw new \LogicException('Global listings are prohibited in selective tests.');
     }
