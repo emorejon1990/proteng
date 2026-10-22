@@ -4,6 +4,8 @@ namespace App\Policies;
 
 use App\Models\Invoice;
 use App\Models\User;
+use App\Models\WorkOrder;
+use App\Services\DistributionSelectionService;
 
 class InvoicePolicy
 {
@@ -24,6 +26,15 @@ class InvoicePolicy
     public function classify(User $user, Invoice $invoice): bool
     {
         return ! $user->hasRole('Customer') && $user->hasRole(['Admin', 'Manager']);
+    }
+
+    public function printFromDistribution(User $user, Invoice $invoice, WorkOrder $workOrder): bool
+    {
+        return ! $user->hasRole('Customer')
+            && $user->hasRole(['Admin', 'Manager', 'Worker'])
+            && $invoice->operation_type === 'distribution'
+            && (int) $invoice->work_order_id === (int) $workOrder->id
+            && app(DistributionSelectionService::class)->orders()->whereKey($workOrder->id)->exists();
     }
 
     public function create(User $user): bool

@@ -6,6 +6,7 @@ use App\Models\WorkOrder;
 use App\Models\WorkOrderProduct;
 use App\Services\DistributionSelectionService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -74,6 +75,10 @@ class WorkOrderDistributionEditor extends Component
         $service->authorize(Auth::user());
         $requirements = $service->requirements($this->workOrder);
         $open = $service->orders()->whereKey($this->workOrder->id)->exists();
+        $printInvoice = $this->workOrder->invoice()->first();
+        if ($printInvoice && ! Gate::allows('printFromDistribution', [$printInvoice, $this->workOrder])) {
+            $printInvoice = null;
+        }
         $selections = ($open ? $service->reservations($this->workOrder)
             : WorkOrderProduct::where('work_order_id', $this->workOrder->id)->where('purpose', 'distribution')->where('state', 'completed'))
             ->with('product.asset', 'distributionAsset')->get();
@@ -89,6 +94,6 @@ class WorkOrderDistributionEditor extends Component
         $complete = $models->isNotEmpty() && $models->every(fn ($model) => $model['selected'] === $model['quantity'])
             && $selections->count() === array_sum($requirements);
 
-        return view('livewire.work-order-distribution-editor', compact('models', 'selections', 'complete', 'open'));
+        return view('livewire.work-order-distribution-editor', compact('models', 'selections', 'complete', 'open', 'printInvoice'));
     }
 }

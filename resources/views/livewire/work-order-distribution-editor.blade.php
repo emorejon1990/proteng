@@ -1,5 +1,10 @@
 <div class="p-4 border rounded bg-white shadow space-y-4" x-data="{}"
      x-on:distribution-selection-changed.window="if (Number($event.detail.orderId) === {{ $workOrder->id }}) $nextTick(() => $refs.serial?.focus())">
+    @if ($printInvoice)
+        <x-filament::button tag="a" :href="route('invoices.pdf', ['invoice' => $printInvoice, 'work_order' => $workOrder->id])" target="_blank" rel="noopener noreferrer">
+            Print Invoice
+        </x-filament::button>
+    @endif
     <table class="w-full text-left">
         <thead><tr><th>Modelo</th><th>Solicitados</th><th>Escaneados</th><th>Pendientes</th><th>Disponibles</th><th>Faltantes</th></tr></thead>
         <tbody>

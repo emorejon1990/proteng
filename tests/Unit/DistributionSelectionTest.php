@@ -21,6 +21,7 @@ use Tests\TestCase;
 
 uses(TestCase::class);
 require_once __DIR__.'/../Support/ProductionDatabase.php';
+require_once __DIR__.'/../Support/InvoiceDatabase.php';
 
 function distributionActor(bool $allowed = true): User
 {
@@ -50,6 +51,7 @@ function distributionStock(int $asset = 31, array $attributes = []): Products
 
 beforeEach(function () {
     setupTraceabilityDatabase();
+    invoiceIntegrationUp();
     phaseOneUp();
     config(['production.catalog_ids' => []]);
     DB::table('wo_status')->insert([['id' => 13, 'name' => 'inProcess'], ['id' => 16, 'name' => 'Ready']]);
@@ -292,7 +294,6 @@ it('renders the Worker page and scopes camera selection to its chosen distributi
     config(['permission.cache.store' => 'array']);
     app('cache')->setDefaultDriver('array');
     app(PermissionRegistrar::class)->initializeCache();
-    (require collect(glob(database_path('migrations/*create_permission_tables.php')))->first())->up();
     Role::create(['name' => 'Worker', 'guard_name' => 'web']);
     $user = User::findOrFail(1);
     $user->assignRole('Worker');
