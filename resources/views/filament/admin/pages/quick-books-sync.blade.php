@@ -1,8 +1,22 @@
 <x-filament-panels::page>
     @if ($selectiveReport !== [])
-        <section class="space-y-3 rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
-            <h2 class="font-semibold">Selective test: {{ $selectiveReport['mode'] === 'dry_run' ? 'Dry Run' : 'Apply' }} — 1982, 11241, 11990</h2>
-            <p>{{ $selectiveReport['passed'] ? 'All mandatory checks passed.' : 'Checks failed or execution stopped. Review the results; this is not a successful synchronization.' }}</p>
+        <section @if ($selectiveRunId !== null) wire:poll.1s="continueSelectiveDryRun" @endif class="space-y-3 rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+            <h2 class="font-semibold">Dry Run — 50 random invoices</h2>
+            <p>Estado: {{ $selectiveReport['status'] ?? 'pending' }}. Apply está deshabilitado.</p>
+            @if ($selectiveReport['notice'] ?? null)<p>{{ $selectiveReport['notice'] }}</p>@endif
+            @if (isset($selectiveReport['summary']))
+                @php
+                    $summaryLabels = ['selected' => 'Seleccionadas', 'consulted' => 'Consultadas', 'processed' => 'Procesadas',
+                        'pending_or_partial' => 'Pendientes o parciales', 'paid' => 'Pagadas', 'with_product' => 'Con Product',
+                        'excluded_payment' => 'Excluidas por pago', 'excluded_category' => 'Excluidas por categoría',
+                        'both_filters' => 'Pasan ambos filtros', 'review' => 'Revisión', 'technical_errors' => 'Errores técnicos'];
+                @endphp
+                <dl class="grid grid-cols-2 gap-2 md:grid-cols-4">
+                    @foreach ($summaryLabels as $key => $label)
+                        <div><dt>{{ $label }}</dt><dd>{{ $selectiveReport['summary'][$key] }}</dd></div>
+                    @endforeach
+                </dl>
+            @endif
             @foreach ($selectiveReport['errors'] as $error)
                 <p class="text-danger-600">{{ $error }}</p>
             @endforeach
@@ -49,7 +63,7 @@
                     </tbody>
                 </table>
             </div>
-            <p class="text-sm">Download the report for individual checks, line IDs and before/after integrity summaries. Apply requires a successful Dry Run and a second confirmation within 15 minutes.</p>
+            <p class="text-sm">Download Test Report incluye los IDs seleccionados, posiciones del sorteo, filtros, diagnósticos, tiempos y resumen. Las exclusiones válidas no son errores. Mantén esta página abierta hasta finalizar; no se habilita Apply.</p>
         </section>
     @endif
     <div class="space-y-2">

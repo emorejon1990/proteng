@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\InvoiceSelectiveSandbox;
 use App\Services\InvoiceSelectiveSyncService;
+use App\Services\QuickBooksReadGateway;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Crypt;
 
@@ -26,8 +27,14 @@ class SimulateSelectedInvoices extends Command
                 }
             }
             $input = json_decode(Crypt::decryptString(file_get_contents($this->argument('input'))), true, 512, JSON_THROW_ON_ERROR);
-            if (array_map('strval', array_keys($input['responses']['Invoice'])) !== InvoiceSelectiveSyncService::IDS) {
+            $ids = $input['ids'] ?? [];
+            if (! is_array($ids) || ! $ids || count($ids) > InvoiceSelectiveSyncService::SAMPLE_SIZE
+                || count(array_unique($ids)) !== count($ids)
+                || array_map('strval', array_keys($input['responses']['Invoice'])) !== $ids) {
                 throw new \RuntimeException('Unexpected invoice scope.');
+            }
+            foreach ($ids as $id) {
+                QuickBooksReadGateway::entityRef($id);
             }
             $results = $sandbox->simulate($input);
             file_put_contents($this->argument('output'), json_encode($results, JSON_THROW_ON_ERROR));

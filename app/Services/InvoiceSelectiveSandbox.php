@@ -85,7 +85,7 @@ class InvoiceSelectiveSandbox
 
         return Model::withoutEvents(function () use ($input, $importer, $verifier) {
             $results = [];
-            foreach (InvoiceSelectiveSyncService::IDS as $id) {
+            foreach ($input['ids'] as $id) {
                 $started = microtime(true);
                 $before = $verifier->snapshot($id);
                 try {

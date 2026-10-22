@@ -12,216 +12,238 @@ use Illuminate\Support\Str;
 
 class InvoiceSelectiveSyncService
 {
-    public const IDS = ['1982', '11241', '11990'];
-
-    private array $captureStatus = [];
-
-    private ?string $activeId = null;
+    public const SAMPLE_SIZE = 50;
 
     public function __construct(private QuickBooksReadGateway $gateway, private InvoiceSelectiveSandbox $sandbox, private InvoiceSelectiveVerification $verification) {}
 
+    /** One random draw; subsequent requests never redraw positions or replace failed invoices. */
     public function dryRun(User $actor): array
     {
         $this->authorize($actor);
 
         return app(QuickBooksSyncLock::class)->run(function () use ($actor) {
-            $report = $this->report('dry_run');
-            try {
-                $input = $this->capture();
-                $report['company'] = ['realm_id' => $input['realm'], 'environment' => $input['environment']];
-                $results = $this->sandbox->run($input);
-                foreach (self::IDS as $id) {
-                    $report['invoices'][$id] = $results[$id];
-                    $report['invoices'][$id]['seconds'] += $input['api_seconds'][$id];
-                }
-                $report['passed'] = count($results) === 3 && collect($results)->every(fn ($result) => ($result['passed'] ?? false) === true);
-                if ($report['passed']) {
-                    $ticket = Str::random(64);
-                    Cache::put($this->ticketKey($actor, $ticket), Crypt::encryptString(json_encode([
-                        'actor_id' => $actor->id, 'fingerprint' => $this->fingerprint($input),
-                        'states' => $input['states'], 'realm' => $input['realm'], 'environment' => $input['environment'],
-                        'input' => $input,
-                    ], JSON_THROW_ON_ERROR)), now()->addMinutes(15));
-
-                    return ['report' => $report, 'ticket' => $ticket];
-                }
-            } catch (\Throwable $e) {
-                $report['invoices'] = $this->captureStatus ?: $report['invoices'];
-                if ($this->activeId !== null) {
-                    $report['invoices'][$this->activeId]['errors'][] = 'Read or preparation failed; selective test stopped.';
-                }
-                $report['errors'][] = $e instanceof InvoiceDataException ? $e->getMessage() : 'Dry Run stopped. Check the configured company, connection and isolated PHP/SQLite process.';
+            $realm = $this->gateway->realm();
+            $environment = (string) config('services.quickbooks.env');
+            if (Invoice::whereNotNull('realm_id')->where('realm_id', '!=', $realm)->exists()) {
+                throw new \RuntimeException('Existing invoice company differs from the connected company.');
             }
+            $count = $this->gateway->invoiceCount();
+            $positions = [];
+            // Floyd sampling: uniform sampling without replacement, O(50) memory.
+            for ($n = $count - min(self::SAMPLE_SIZE, $count) + 1; $n <= $count; $n++) {
+                $pick = random_int(1, $n);
+                $positions[isset($positions[$pick]) ? $n : $pick] = true;
+            }
+            $positions = array_keys($positions);
+            shuffle($positions);
+            $run = Str::random(64);
+            $state = ['actor_id' => $actor->id, 'realm' => $realm, 'environment' => $environment,
+                'offset' => 0, 'pending' => null, 'items' => [], 'failed_items' => [], 'customers' => [],
+                'report' => ['mode' => 'dry_run', 'status' => $count ? 'running' : 'completed',
+                    'created_at' => now()->toIso8601String(), 'passed' => $count === 0,
+                    'company' => ['realm_id' => $realm, 'environment' => $environment],
+                    'available_invoices' => $count, 'requested_count' => self::SAMPLE_SIZE,
+                    'selected_positions' => $positions, 'selected_ids' => [], 'invoices' => [], 'errors' => [],
+                    'notice' => $count < self::SAMPLE_SIZE ? 'QuickBooks has fewer than 50 invoices; all available invoices are included.' : null]];
+            $this->save($run, $state);
 
-            return ['report' => $report, 'ticket' => null];
+            return ['report' => $state['report'], 'run_id' => $run, 'ticket' => null];
+        });
+    }
+
+    /** At most one remote read per request, followed by a later isolated simulation request. */
+    public function advanceDryRun(User $actor, string $run): array
+    {
+        $this->authorize($actor);
+        abort_unless(preg_match('/^[a-zA-Z0-9]{64}$/D', $run), 422);
+
+        return Cache::lock($this->key($run).'.lock', 180)->block(1, function () use ($actor, $run) {
+            $encrypted = Cache::get($this->key($run));
+            abort_unless(is_string($encrypted), 422, 'Dry Run expired. Start a new sample.');
+            $state = json_decode(Crypt::decryptString($encrypted), true, 512, JSON_THROW_ON_ERROR);
+            abort_unless($state['actor_id'] === $actor->id, 403);
+            if ($state['report']['status'] !== 'running') {
+                return $state['report'];
+            }
+            try {
+                app(QuickBooksSyncLock::class)->run(function () use (&$state) {
+                    $this->assertConnection($state['realm'], $state['environment']);
+                    $this->step($state);
+                    $this->assertConnection($state['realm'], $state['environment']);
+                });
+            } catch (\Throwable $e) {
+                $state['report']['status'] = 'stopped';
+                $state['report']['passed'] = false;
+                $state['report']['errors'][] = 'Dry Run stopped safely. Check company, connection, cache and simulation availability. Completed results remain available.';
+            }
+            $this->save($run, $state);
+
+            return $state['report'];
         });
     }
 
     public function apply(User $actor, string $ticket, bool $confirmed): array
     {
         $this->authorize($actor);
-        abort_unless($confirmed, 422, 'Apply requires a separate explicit confirmation.');
+        abort(403, 'Apply is disabled for random invoice samples.');
+    }
 
-        return app(QuickBooksSyncLock::class)->run(function () use ($actor, $ticket) {
-            $key = $this->ticketKey($actor, $ticket);
-            $approval = Cache::pull($key); // Single-use, consumed even when the source changes or Apply fails.
-            abort_unless(is_string($approval), 422, 'A successful, unexpired Dry Run is required.');
-            $approval = json_decode(Crypt::decryptString($approval), true, 512, JSON_THROW_ON_ERROR);
-            abort_unless($approval['actor_id'] === $actor->id, 403);
-            $report = $this->report('apply');
-            try {
-                $input = $this->capture();
-                $report['company'] = ['realm_id' => $input['realm'], 'environment' => $input['environment']];
-                if (! hash_equals($approval['fingerprint'], $this->fingerprint($input))) {
-                    $report['invoices'] = $this->captureStatus;
-                    unset($approval['input']['api_seconds'], $input['api_seconds']);
-                    $report['errors'][] = 'Dry Run is stale. Changed fields: '.implode(', ', $this->differences($approval['input'], $input)).'. Run Dry Run again.';
-
-                    return $report;
+    private function step(array &$state): void
+    {
+        $started = microtime(true);
+        $position = $state['report']['selected_positions'][$state['offset']];
+        $id = $state['pending']['id'] ?? 'position:'.$position;
+        try {
+            if ($state['pending'] === null) {
+                $page = $this->gateway->page('Invoice', $position, 1);
+                if (count($page) !== 1) {
+                    throw new InvoiceDataException('Selected invoice is no longer available.');
                 }
-                $gateway = new QuickBooksCapturedReadGateway($input['realm'], $input['responses']);
-                $importer = new InvoiceSyncService($gateway, app(CustomerSyncService::class), app(InvoiceRequirements::class));
-                foreach (self::IDS as $id) {
-                    $started = microtime(true);
-                    $result = null;
-                    $before = null;
-                    try {
-                        $before = $this->verification->snapshot($id);
-                        $result = DB::transaction(function () use ($id, $input, $approval, $importer, &$result) {
-                            app(QuickBooksSyncLock::class)->assertOwned();
-                            $before = $this->verification->snapshot($id, true);
-                            if ($before !== $approval['states'][$id]) {
-                                throw new \RuntimeException('Local invoice changed after Dry Run.');
-                            }
-                            $filters = $input['filters'][$id];
-                            if (! $before['invoice'] && $filters['result'] !== 'candidate') {
-                                $result = ['consulted' => true] + $this->verification->filtered($input['responses']['Invoice'][$id], $before, $filters);
-                            } else {
-                                $invoice = $importer->import($input['responses']['Invoice'][$id], $input['realm'], $filters);
-                                $result = ['consulted' => true] + $this->verification->verify($input['responses']['Invoice'][$id], $before, $invoice, $input['realm'], $filters);
-                            }
-                            if (! $result['passed']) {
-                                throw new \RuntimeException('Mandatory integrity checks failed.');
-                            }
-                            app(QuickBooksSyncLock::class)->assertOwned();
+                $payload = $page[0];
+                $id = QuickBooksReadGateway::entityRef($payload['Id'] ?? null);
+                if (in_array($id, $state['report']['selected_ids'], true)) {
+                    // Concurrent additions/deletions can shift offsets. Do not bias the sample by redrawing.
+                    $state['report']['status'] = 'stopped';
+                    $state['report']['errors'][] = 'Invoice listing changed during sampling: duplicate ID encountered. No replacement was drawn.';
 
-                            return $result;
-                        });
-                    } catch (\Throwable $e) {
-                        $result ??= ['consulted' => true, 'passed' => false, 'checks' => [], 'errors' => ['Import stopped. Review the rollback verification.']];
-                        if ($e instanceof InvoiceDataException) {
-                            $result['import_diagnostics'] = [['message' => $e->getMessage()] + $e->context];
-                        }
-                        $result['passed'] = false;
-                        $restored = null;
+                    return;
+                }
+                $state['report']['selected_ids'][] = $id;
+                $state['report']['invoices'][$id] = ['consulted' => true, 'passed' => false, 'change' => 'pending',
+                    'line_count' => count($payload['Line'] ?? []), 'total' => $payload['TotalAmt'] ?? null,
+                    'balance' => $payload['Balance'] ?? null, 'final_state' => 'pending', 'seconds' => 0, 'errors' => []];
+                $queue = [];
+                foreach ($payload['Line'] ?? [] as $line) {
+                    if (($line['DetailType'] ?? null) === 'SalesItemLineDetail') {
                         try {
-                            $restored = $this->verification->snapshot($id);
-                        } catch (\Throwable $verificationError) {
-                            $result['errors'][] = 'Database state could not be verified after failure. Manual review is required.';
+                            $ref = QuickBooksReadGateway::ref($line['SalesItemLineDetail']['ItemRef'] ?? null);
+                            if ($ref !== 'SHIPPING_ITEM_ID') {
+                                $queue[QuickBooksReadGateway::entityRef($ref)] = 0;
+                            }
+                        } catch (InvoiceDataException $e) {
+                            // Existing filter diagnostics handle invalid references.
                         }
-                        $preserved = $before !== null && $before === $restored;
-                        $result['final_state'] = $preserved ? 'rolled_back' : 'unverified_stop';
-                        $result['checks']['failed_import_preserved_data'] = $preserved;
-                        $result['attempted_after'] = $result['after'] ?? null;
-                        $result['after'] = $restored === null ? null : $this->verification->summary($restored);
-                        $report['invoices'][$id] = $result + ['seconds' => round(microtime(true) - $started + $input['api_seconds'][$id], 3)];
-                        $report['errors'][] = 'Apply stopped at invoice '.$id.'. No subsequent invoices were modified.';
-
-                        return $report;
                     }
-                    $report['invoices'][$id] = $result + ['seconds' => round(microtime(true) - $started + $input['api_seconds'][$id], 3)];
                 }
-                $report['passed'] = true;
-            } catch (\Throwable $e) {
-                $report['invoices'] = $this->captureStatus ?: $report['invoices'];
-                if ($this->activeId !== null) {
-                    $report['invoices'][$this->activeId]['errors'][] = 'Read or preparation failed; Apply stopped before import.';
-                }
-                $report['errors'][] = 'Apply stopped before import. The source, company, local state or connection may have changed; run Dry Run again.';
-            }
+                $state['pending'] = ['id' => $id, 'payload' => $payload, 'queue' => $queue];
 
-            return $report;
-        });
+                return;
+            }
+            $pending = &$state['pending'];
+            // Expand cached parent chains locally; fetch only the first unresolved Item/category.
+            do {
+                $expanded = false;
+                foreach ($pending['queue'] as $ref => $depth) {
+                    if (isset($state['failed_items'][$ref])) {
+                        continue;
+                    }
+                    if (! isset($state['items'][$ref])) {
+                        try {
+                            $state['items'][$ref] = $this->gateway->find('Item', (string) $ref);
+                            if ((string) ($state['items'][$ref]['Id'] ?? '') !== (string) $ref) {
+                                throw new InvoiceDataException('Item response identity mismatch.');
+                            }
+                        } catch (\Throwable $e) {
+                            unset($state['items'][$ref]);
+                            $state['failed_items'][$ref] = true;
+                            $state['report']['invoices'][$id]['technical_error'] = true;
+                        }
+
+                        return;
+                    }
+                    $parent = $state['items'][$ref]['ParentRef'] ?? null;
+                    if ($parent !== null && $depth < 20) {
+                        try {
+                            $parent = QuickBooksReadGateway::entityRef($parent);
+                            if (! array_key_exists($parent, $pending['queue'])) {
+                                $pending['queue'][$parent] = $depth + 1;
+                                $expanded = true;
+                            }
+                        } catch (InvoiceDataException $e) {
+                            // Existing category resolver reports malformed/cyclic references.
+                        }
+                    }
+                }
+            } while ($expanded);
+            $payload = $pending['payload'];
+            $responses = ['Invoice' => [$id => $payload], 'Item' => $state['items'], 'Customer' => $state['customers']];
+            $gateway = new QuickBooksCapturedReadGateway($state['realm'], $responses);
+            $filters = app(InvoiceRequirements::class)->filters($payload, fn ($ref) => $gateway->find('Item', $ref));
+            if ($filters['result'] === 'candidate' || Invoice::where('quickbooks_id', $id)->exists()) {
+                try {
+                    $customer = QuickBooksReadGateway::entityRef($payload['CustomerRef'] ?? null);
+                    if (! isset($state['customers'][$customer]) && ! DB::table('customers')->where('quickbooks_id', $customer)->exists()) {
+                        $state['customers'][$customer] = $this->gateway->find('Customer', $customer);
+
+                        return;
+                    }
+                } catch (InvoiceDataException $e) {
+                    // Importer will report invalid customer references in the sandbox.
+                }
+            }
+            $input = ['ids' => [$id], 'realm' => $state['realm'], 'environment' => $state['environment'],
+                'responses' => $responses, 'filters' => [$id => $filters]];
+            [$input['local'], $input['states']] = DB::transaction(fn () => $this->localState($input, $state['schema'] ?? []));
+            $state['schema'] ??= array_map(fn ($table) => ['columns' => $table['columns'], 'indexes' => $table['indexes']], $input['local']);
+            $result = $this->sandbox->run($input)[$id];
+            $result['seconds'] = $state['report']['invoices'][$id]['seconds'];
+            $result['technical_error'] = (bool) array_intersect_key($state['failed_items'], $pending['queue']) || $result['final_state'] === 'failed';
+            $state['report']['invoices'][$id] = $result;
+            $state['pending'] = null;
+            $state['offset']++;
+        } catch (\Throwable $e) {
+            $state['report']['invoices'][$id] = array_replace($state['report']['invoices'][$id] ?? [], [
+                'consulted' => ! str_starts_with((string) $id, 'position:'), 'passed' => false, 'technical_error' => true,
+                'change' => 'not_processed', 'final_state' => 'failed', 'selection_result' => 'review',
+                'line_count' => null, 'total' => null, 'balance' => null,
+                'seconds' => $state['report']['invoices'][$id]['seconds'] ?? 0,
+                'filters' => $filters ?? null,
+                'import_diagnostics' => $e instanceof InvoiceDataException ? [['message' => $e->getMessage()] + $e->context] : [],
+                'operational_diagnostics' => [],
+                'errors' => ['Invoice read or isolated processing failed; other selected invoices will continue.']]);
+            $state['pending'] = null;
+            $state['offset']++;
+        } finally {
+            if (isset($state['report']['invoices'][$id])) {
+                $state['report']['invoices'][$id]['seconds'] += round(microtime(true) - $started, 3);
+            }
+            if ($state['offset'] >= count($state['report']['selected_positions'])) {
+                $state['report']['status'] = 'completed';
+                $state['report']['passed'] = collect($state['report']['invoices'])->every(fn ($row) => $row['passed']);
+            }
+        }
+    }
+
+    private function save(string $run, array &$state): void
+    {
+        $summary = ['selected' => count($state['report']['selected_positions']), 'consulted' => 0, 'pending_or_partial' => 0,
+            'paid' => 0, 'with_product' => 0, 'excluded_payment' => 0, 'excluded_category' => 0,
+            'both_filters' => 0, 'review' => 0, 'technical_errors' => 0, 'processed' => $state['offset']];
+        foreach ($state['report']['invoices'] as $row) {
+            $filters = $row['filters'] ?? [];
+            $summary['consulted'] += ! empty($row['consulted']);
+            $summary['pending_or_partial'] += in_array($filters['payment_state'] ?? null, ['pending', 'partial'], true);
+            $summary['paid'] += ($filters['payment_state'] ?? null) === 'paid';
+            $summary['with_product'] += ($filters['product_items'] ?? 0) > 0;
+            $summary['excluded_payment'] += ($filters['payment_filter'] ?? null) === 'excluded';
+            $summary['excluded_category'] += ($filters['category_filter'] ?? null) === 'excluded';
+            $summary['both_filters'] += ($filters['payment_filter'] ?? null) === 'passed' && ($filters['category_filter'] ?? null) === 'passed';
+            $summary['review'] += ($row['selection_result'] ?? null) === 'review';
+            $summary['technical_errors'] += ! empty($row['technical_error']);
+        }
+        $summary['technical_errors'] += count($state['report']['errors']);
+        $state['report']['summary'] = $summary;
+        Cache::put($this->key($run), Crypt::encryptString(json_encode($state, JSON_THROW_ON_ERROR)), now()->addHour());
+    }
+
+    private function key(string $run): string
+    {
+        return 'quickbooks.random-dry-run.'.$run;
     }
 
     private function authorize(User $actor): void
     {
         abort_unless($actor->hasRole('Admin') && ! $actor->hasRole('Customer'), 403);
-    }
-
-    private function ticketKey(User $actor, string $ticket): string
-    {
-        return 'quickbooks.selective.approval.'.$actor->id.'.'.hash('sha256', $ticket);
-    }
-
-    private function report(string $mode): array
-    {
-        return ['mode' => $mode, 'passed' => false, 'created_at' => now()->toIso8601String(), 'errors' => [],
-            'invoices' => array_fill_keys(self::IDS, ['consulted' => false, 'passed' => false, 'change' => 'not_processed',
-                'line_count' => null, 'total' => null, 'final_state' => 'not_processed', 'seconds' => 0, 'errors' => [], 'checks' => []])];
-    }
-
-    private function capture(): array
-    {
-        $this->captureStatus = $this->report('dry_run')['invoices'];
-        $this->activeId = null;
-        $realm = $this->gateway->realm();
-        $environment = (string) config('services.quickbooks.env');
-        if (Invoice::whereNotNull('realm_id')->where('realm_id', '!=', $realm)->exists()) {
-            throw new \RuntimeException('Existing invoice company differs from the connected company.');
-        }
-        $input = ['realm' => $realm, 'environment' => $environment, 'responses' => ['Invoice' => [], 'Customer' => [], 'Item' => []], 'api_seconds' => []];
-        $failedItems = [];
-        $readItem = function (string $id) use (&$input, &$failedItems, $realm, $environment): array {
-            if (isset($failedItems[$id])) {
-                throw new InvoiceDataException('Item or category is unavailable.');
-            }
-            if (! isset($input['responses']['Item'][$id])) {
-                $this->assertConnection($realm, $environment);
-                try {
-                    $input['responses']['Item'][$id] = $this->gateway->find('Item', $id);
-                } catch (\Throwable $e) {
-                    $failedItems[$id] = true;
-                    throw $e;
-                }
-            }
-
-            return $input['responses']['Item'][$id];
-        };
-        foreach (self::IDS as $id) {
-            $started = microtime(true);
-            $this->activeId = $id;
-            $this->captureStatus[$id]['queried'] = true;
-            $this->assertConnection($realm, $environment);
-            $payload = $this->gateway->find('Invoice', $id);
-            if ((string) ($payload['Id'] ?? '') !== $id) {
-                throw new \RuntimeException('Unexpected invoice identity.');
-            }
-            $input['responses']['Invoice'][$id] = $payload;
-            $this->captureStatus[$id]['consulted'] = true;
-            $this->captureStatus[$id]['line_count'] = is_array($payload['Line'] ?? null) ? count($payload['Line']) : null;
-            $this->captureStatus[$id]['total'] = is_numeric($payload['TotalAmt'] ?? null) ? number_format((float) $payload['TotalAmt'], 2, '.', '') : null;
-            // Always resolve current categories, even when the stored Invoice payload is unchanged.
-            $input['filters'][$id] = app(InvoiceRequirements::class)->filters($payload, $readItem);
-            $this->captureStatus[$id]['filters'] = $input['filters'][$id];
-            $this->captureStatus[$id]['balance'] = $payload['Balance'] ?? null;
-            try {
-                $customer = QuickBooksReadGateway::entityRef($payload['CustomerRef'] ?? null, ['entity' => 'Customer']);
-                if (! DB::table('customers')->where('quickbooks_id', $customer)->exists() && ! isset($input['responses']['Customer'][$customer])) {
-                    $this->assertConnection($realm, $environment);
-                    $input['responses']['Customer'][$customer] = $this->gateway->find('Customer', $customer);
-                }
-            } catch (InvoiceDataException $e) {
-                // The shared importer will report invalid invoice references in the sandbox.
-            }
-            $input['api_seconds'][$id] = round(microtime(true) - $started, 3);
-            $this->captureStatus[$id]['seconds'] = $input['api_seconds'][$id];
-        }
-        $this->assertConnection($realm, $environment);
-        [$input['local'], $input['states']] = DB::transaction(fn () => $this->localState($input));
-        $this->activeId = null;
-
-        return $input;
     }
 
     private function assertConnection(string $realm, string $environment): void
@@ -232,10 +254,10 @@ class InvoiceSelectiveSyncService
         }
     }
 
-    private function localState(array $input): array
+    private function localState(array $input, array $schema = []): array
     {
         $states = [];
-        foreach (self::IDS as $id) {
+        foreach ($input['ids'] as $id) {
             $states[$id] = $this->verification->snapshot($id);
         }
         $invoices = array_values(array_filter(array_column($states, 'invoice')));
@@ -261,38 +283,15 @@ class InvoiceSelectiveSyncService
         ];
         $local = [];
         foreach (InvoiceSelectiveSandbox::TABLES as $table) {
-            if (! Schema::hasTable($table)) {
-                throw new \RuntimeException('Required selective test schema is unavailable.');
+            if (! isset($schema[$table])) {
+                if (! Schema::hasTable($table)) {
+                    throw new \RuntimeException('Required selective test schema is unavailable.');
+                }
+                $schema[$table] = ['columns' => Schema::getColumns($table), 'indexes' => Schema::getIndexes($table)];
             }
-            $local[$table] = ['columns' => Schema::getColumns($table), 'indexes' => Schema::getIndexes($table), 'rows' => $rows[$table]];
+            $local[$table] = $schema[$table] + ['rows' => $rows[$table]];
         }
 
         return [$local, $states];
-    }
-
-    private function fingerprint(array $input): string
-    {
-        unset($input['api_seconds']);
-
-        return hash('sha256', json_encode($input, JSON_THROW_ON_ERROR));
-    }
-
-    private function differences(mixed $before, mixed $after, string $path = ''): array
-    {
-        if ($before === $after) {
-            return [];
-        }
-        if (! is_array($before) || ! is_array($after)) {
-            return [$path];
-        }
-        $changes = [];
-        foreach (array_unique(array_merge(array_keys($before), array_keys($after))) as $key) {
-            $changes = array_merge($changes, $this->differences($before[$key] ?? null, $after[$key] ?? null, ltrim($path.'.'.$key, '.')));
-            if (count($changes) >= 100) {
-                return array_slice($changes, 0, 100);
-            }
-        }
-
-        return $changes;
     }
 }

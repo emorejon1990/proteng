@@ -31,6 +31,27 @@ class QuickBooksSync extends Page
     #[Locked]
     public ?string $selectiveTicket = null;
 
+    #[Locked]
+    public ?string $selectiveRunId = null;
+
+    public function continueSelectiveDryRun(): void
+    {
+        abort_unless(Auth::user()?->hasRole('Admin') && ! Auth::user()->hasRole('Customer'), 403);
+        if ($this->selectiveRunId === null) {
+            return;
+        }
+        try {
+            $this->selectiveReport = app(InvoiceSelectiveSyncService::class)->advanceDryRun(Auth::user(), $this->selectiveRunId);
+            if ($this->selectiveReport['status'] !== 'running') {
+                $this->selectiveRunId = null;
+            }
+        } catch (\Throwable $e) {
+            $this->selectiveReport['status'] = 'stopped';
+            $this->selectiveReport['errors'][] = 'Dry Run stopped. Check cache, connection and permissions; completed results remain available.';
+            $this->selectiveRunId = null;
+        }
+    }
+
     public static function canAccess(): bool
     {
         $user = Auth::user();
@@ -42,27 +63,28 @@ class QuickBooksSync extends Page
     {
         return [
             Action::make('testThreeInvoices')
-                ->label('Test 3 Invoices')
+                ->label('Test 50 Random Invoices')
+                ->disabled(fn () => $this->selectiveRunId !== null)
                 ->visible(fn () => Auth::user()?->hasRole('Admin') && ! Auth::user()->hasRole('Customer'))
                 ->requiresConfirmation()
-                ->modalHeading('Dry Run: 1982, 11241, 11990')
-                ->modalDescription('Read only these three invoices from QuickBooks. Simulate import in isolated SQLite; existing invoices, lines, operations and events will not be modified.')
+                ->modalHeading('Dry Run: 50 random invoices')
+                ->modalDescription('Draw up to 50 distinct invoices without payment or category prefilters. Process in short requests using isolated SQLite. Keep this page open; Apply is disabled.')
                 ->modalSubmitActionLabel('Confirm Dry Run')
                 ->action(function () {
                     $this->selectiveTicket = null;
                     try {
                         $result = app(InvoiceSelectiveSyncService::class)->dryRun(Auth::user());
                         $this->selectiveReport = $result['report'];
-                        $this->selectiveTicket = $result['ticket'];
-                        Notification::make()->title($this->selectiveTicket ? 'Dry Run passed. Review results before Apply.' : 'Dry Run failed. Apply is unavailable.')
-                            ->status($this->selectiveTicket ? 'success' : 'danger')->send();
+                        $this->selectiveRunId = $this->selectiveReport['status'] === 'running' ? $result['run_id'] : null;
+                        Notification::make()->title('Random Dry Run prepared. Apply is disabled.')->info()->send();
                     } catch (\Throwable $e) {
                         Notification::make()->title('Selective test unavailable')->body('Check authorization or wait for the current synchronization to finish.')->danger()->send();
                     }
                 }),
             Action::make('applyThreeInvoices')
                 ->label('Apply 3 Invoices')
-                ->visible(fn () => Auth::user()?->hasRole('Admin') && ! Auth::user()->hasRole('Customer') && $this->selectiveTicket !== null)
+                ->visible(false)
+                ->disabled()
                 ->requiresConfirmation()
                 ->modalHeading('Apply: 1982, 11241, 11990')
                 ->modalDescription('Second confirmation: import only these three invoices into the existing database. Apply stops if the validated source or local state has changed.')

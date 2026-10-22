@@ -47,6 +47,18 @@ class QuickBooksReadGateway
         return array_map(self::payload(...), $result);
     }
 
+    public function invoiceCount(): int
+    {
+        $ds = $this->qb->ds($this->realm());
+        $count = $ds->Query('SELECT COUNT(*) FROM Invoice');
+        $this->check($ds);
+        if (! is_int($count) || $count < 0) {
+            throw new \RuntimeException('QuickBooks returned an invalid invoice count.');
+        }
+
+        return $count;
+    }
+
     public function find(string $entity, string $id): array
     {
         if (! in_array($entity, ['Invoice', 'Customer', 'Item'], true)) {
