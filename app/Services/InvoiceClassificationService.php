@@ -37,7 +37,11 @@ class InvoiceClassificationService
             if (! $invoice->customer?->quickbooks_id) {
                 $this->fail('A local QuickBooks customer is required.');
             }
-            $requirements = $this->requirements->resolve($invoice);
+            $filters = app(InvoiceSyncService::class)->filtersFor($invoice->raw_payload ?? []);
+            if ($filters['result'] !== 'candidate') {
+                $this->fail('Only outstanding invoices with verified Product items can be classified.');
+            }
+            $requirements = $this->requirements->resolve($invoice, true, $filters);
             if ($type === 'installation') {
                 $equipment = Equipment::whereKey($configuration['equipment_id'] ?? null)->lockForUpdate()->first();
                 if (! $equipment || ! $equipment->installationTemplateSteps()->exists()) {

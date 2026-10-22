@@ -39,7 +39,23 @@ class InvoiceSelectiveVerification
         ];
     }
 
-    public function verify(array $payload, array $before, Invoice $invoice, string $realm): array
+    public function filtered(array $payload, array $before, array $filters): array
+    {
+        $after = $this->snapshot((string) $payload['Id']);
+        $preserved = $before === $after;
+
+        return ['passed' => $preserved && $filters['result'] === 'excluded', 'filters' => $filters,
+            'selection_result' => $filters['result'],
+            'balance' => $payload['Balance'] ?? null, 'total' => $payload['TotalAmt'] ?? null,
+            'line_count' => count($payload['Line'] ?? []), 'change' => 'not_imported',
+            'final_state' => $filters['result'], 'checks' => ['filtered_data_preserved' => $preserved],
+            'operational_diagnostics' => $filters['result'] === 'review' ? [['code' => 'filter_review', 'message' => 'Payment or category requires review.']] : [],
+            'import_diagnostics' => [], 'operational_scope' => $filters['result'],
+            'before' => $this->summary($before), 'after' => $this->summary($after),
+            'errors' => $preserved ? [] : ['filtered_data_preserved']];
+    }
+
+    public function verify(array $payload, array $before, Invoice $invoice, string $realm, ?array $filters = null): array
     {
         $after = $this->snapshot($invoice->quickbooks_id);
         $checks = [];
@@ -109,15 +125,26 @@ class InvoiceSelectiveVerification
         $diagnostics = [];
         $scope = 'invalid';
         try {
-            $requirements = app(InvoiceRequirements::class)->resolve($invoice, false);
+            $requirements = $filters && $filters['result'] === 'excluded' && ! $invoice->work_order_id ? []
+                : app(InvoiceRequirements::class)->resolve($invoice, false, $filters);
             $scope = $requirements ? 'physical' : 'out_of_scope';
             $add('operational_requirements_valid', true);
         } catch (ValidationException $e) {
             $diagnostics = InvoiceOperationalException::diagnostics($e);
             $add('operational_requirements_valid', false);
         }
+        if ($filters && $filters['result'] === 'review') {
+            $add('filters_valid', false);
+            $diagnostics[] = ['code' => 'filter_review', 'message' => 'Payment or category requires review.'];
+        }
+        if ($filters && $invoice->work_order_id) {
+            $add('current_operation_consistent', $invoice->operation_status !== 'sync_conflict'
+                && isset($requirements) && $requirements == ($invoice->operation_snapshot['requirements'] ?? []));
+        }
 
         return [
+            'filters' => $filters, 'balance' => (string) $invoice->balance,
+            'selection_result' => in_array(false, $checks, true) ? 'review' : ($filters['result'] ?? 'candidate'),
             'operational_diagnostics' => $diagnostics, 'operational_scope' => $scope,
             'import_diagnostics' => [],
             'passed' => ! in_array(false, $checks, true), 'checks' => $checks,

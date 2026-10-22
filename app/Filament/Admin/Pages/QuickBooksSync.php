@@ -120,8 +120,8 @@ class QuickBooksSync extends Page
 
                     Notification::make()
                         ->title($summary['failed'] ? 'Invoice sync partially completed' : 'Invoices synced successfully')
-                        ->body($summary['synced'].' synchronized; '.$summary['failed'].' skipped. Review Invoice Sync Events.')
-                        ->status($summary['failed'] ? 'warning' : 'success')
+                        ->body($summary['synced'].' synchronized; '.$summary['failed'].' failed; '.($summary['excluded'] ?? 0).' excluded; '.($summary['review'] ?? 0).' require review. Review Invoice Sync Events.')
+                        ->status($summary['failed'] || ($summary['review'] ?? 0) ? 'warning' : 'success')
                         ->send();
                 }),
 

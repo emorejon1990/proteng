@@ -17,6 +17,23 @@
                                 <td>{{ $result['change'] ?? 'not_processed' }}</td><td>{{ $result['line_count'] ?? '—' }}</td>
                                 <td>{{ $result['total'] ?? '—' }}</td><td>{{ $result['final_state'] === 'out_of_scope' ? 'Fuera del alcance operativo' : $result['final_state'] }}</td><td>{{ $result['seconds'] }}</td>
                             </tr>
+                            @if (isset($result['filters']))
+                                @php
+                                    $filters = $result['filters'];
+                                    $filterLabels = ['passed' => 'Pasa', 'excluded' => 'Excluida', 'review' => 'Revisión'];
+                                    $paymentLabels = ['pending' => 'Pendiente', 'partial' => 'Parcial', 'paid' => 'Pagada', 'void' => 'Anulada', 'unknown' => 'Revisión'];
+                                    $resultLabels = ['candidate' => 'Candidata', 'excluded' => 'Excluida', 'review' => 'Revisión'];
+                                @endphp
+                                <tr><td colspan="8" class="py-2 text-sm">
+                                    Balance: {{ $result['balance'] ?? '—' }} ·
+                                    Estado de pago: {{ $paymentLabels[$filters['payment_state']] ?? 'Revisión' }} ·
+                                    Items Product: {{ $filters['product_items'] }} · Otros Items: {{ $filters['other_items'] }} ·
+                                    Desconocidos: {{ $filters['unknown_items'] }} ·
+                                    Filtro categoría: {{ $filterLabels[$filters['category_filter']] }} ·
+                                    Filtro pago: {{ $filterLabels[$filters['payment_filter']] }} ·
+                                    Resultado: {{ $resultLabels[$result['selection_result'] ?? $filters['result']] }}
+                                </td></tr>
+                            @endif
                             @if (($result['errors'] ?? []) !== [])
                                 <tr><td colspan="8" class="text-danger-600">{{ implode('; ', $result['errors']) }}</td></tr>
                             @endif

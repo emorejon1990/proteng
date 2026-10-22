@@ -90,12 +90,18 @@ class InvoiceSelectiveSandbox
                 $before = $verifier->snapshot($id);
                 try {
                     $payload = $input['responses']['Invoice'][$id];
-                    $invoice = $importer->import($payload, $input['realm']);
-                    $results[$id] = ['consulted' => true] + $verifier->verify($payload, $before, $invoice, $input['realm']);
+                    $filters = $input['filters'][$id];
+                    if (! $before['invoice'] && $filters['result'] !== 'candidate') {
+                        $results[$id] = ['consulted' => true] + $verifier->filtered($payload, $before, $filters);
+                    } else {
+                        $invoice = $importer->import($payload, $input['realm'], $filters);
+                        $results[$id] = ['consulted' => true] + $verifier->verify($payload, $before, $invoice, $input['realm'], $filters);
+                    }
                 } catch (\Throwable $e) {
                     $results[$id] = ['consulted' => true, 'passed' => false, 'errors' => [
                         $e instanceof InvoiceDataException ? $e->getMessage() : 'Isolated import failed.',
                     ], 'import_diagnostics' => $e instanceof InvoiceDataException ? [['message' => $e->getMessage()] + $e->context] : [],
+                        'filters' => $input['filters'][$id] ?? null, 'balance' => $payload['Balance'] ?? null, 'selection_result' => 'review',
                         'operational_diagnostics' => [], 'operational_scope' => 'not_evaluated',
                         'checks' => ['failed_import_preserved_data' => $before === $verifier->snapshot($id)], 'final_state' => 'failed'];
                 }

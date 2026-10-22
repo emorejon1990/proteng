@@ -20,7 +20,25 @@ class InvoiceSyncService
         throw new \LogicException('Invoices must be created in QuickBooks.');
     }
 
-    private ?array $itemCache = null;
+    private ?array $itemCache = [];
+
+    private array $itemFailures = [];
+
+    public function filtersFor(array $payload): array
+    {
+        return $this->requirements->filters($payload, function (string $id): array {
+            $this->gateway->realm();
+            if (isset($this->itemFailures[$id])) {
+                throw new InvoiceDataException('Item or category is unavailable.');
+            }
+            try {
+                return $this->itemCache[$id] ??= $this->gateway->find('Item', $id);
+            } catch (\Throwable $e) {
+                $this->itemFailures[$id] = true;
+                throw $e;
+            }
+        });
+    }
 
     public function sync(?User $actor = null): array
     {
@@ -34,8 +52,9 @@ class InvoiceSyncService
     {
         $actor ??= auth()->user();
         abort_unless($actor?->hasRole('Admin') && ! $actor->hasRole('Customer'), 403);
-        $summary = ['synced' => 0, 'failed' => 0];
+        $summary = ['synced' => 0, 'failed' => 0, 'excluded' => 0, 'review' => 0];
         $this->itemCache = [];
+        $this->itemFailures = [];
         $seen = [];
         $currentId = null;
         $process = function (array $payload) use (&$summary, &$seen, &$currentId) {
@@ -44,7 +63,16 @@ class InvoiceSyncService
             $currentId = $id;
             $seen[$id] = true;
             try {
-                $this->import($payload, $this->gateway->realm());
+                $filters = $this->filtersFor($payload);
+                if ($filters['result'] !== 'candidate' && ! Invoice::where('quickbooks_id', $id)->exists()) {
+                    $summary[$filters['result']]++;
+                    InvoiceEvent::create(['event' => 'Invoice Filter '.ucfirst($filters['result']),
+                        'metadata' => ['quickbooks_id' => $id, 'filters' => $filters]]);
+                    $currentId = null;
+
+                    return;
+                }
+                $this->import($payload, $this->gateway->realm(), $filters);
                 $summary['synced']++;
             } catch (InvoiceDataException $e) {
                 $this->failed($id, $e);
@@ -71,7 +99,7 @@ class InvoiceSyncService
                     $process($this->gateway->find('Invoice', $invoice->quickbooks_id));
                 }
             });
-            InvoiceEvent::create(['event' => $summary['failed'] ? 'Invoice Sync Partial' : 'Invoice Sync Completed', 'metadata' => $summary]);
+            InvoiceEvent::create(['event' => $summary['failed'] || $summary['review'] ? 'Invoice Sync Partial' : 'Invoice Sync Completed', 'metadata' => $summary]);
 
             return $summary;
         } catch (\Throwable $e) {
@@ -95,7 +123,7 @@ class InvoiceSyncService
         }
     }
 
-    public function import(array $p, string $realm): Invoice
+    public function import(array $p, string $realm, ?array $filters = null): Invoice
     {
         app(QuickBooksSyncLock::class)->assertOwned();
         $this->assertRealm($realm);
@@ -112,6 +140,7 @@ class InvoiceSyncService
         foreach ($p['Line'] as $number => $line) {
             $details[$number] = $this->lineDetail($line, $number);
         }
+        $filters ??= $this->filtersFor($p);
         // Lock and compare before Item reads. An unchanged invoice must retain its line identities.
         $storedPayload = json_decode(json_encode($p, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
         $unchanged = DB::transaction(function () use ($p, $realm, $storedPayload) {
@@ -142,6 +171,10 @@ class InvoiceSyncService
             $asset = null;
             if ($itemId && ! $shipping) {
                 $this->gateway->realm();
+                if (isset($this->itemFailures[$itemId])) {
+                    throw new InvoiceDataException('Item could not be verified; previous data preserved.',
+                        ['code' => 'unknown_item_category', 'line_index' => $number, 'item_ref' => $itemId]);
+                }
                 $item = $this->itemCache[$itemId] ?? $this->gateway->find('Item', $itemId);
                 $itemContext = ['code' => 'item_response_mismatch', 'rule' => 'item_response_identity',
                     'line_index' => $number, 'line_position' => $number + 1, 'detail_type' => $line['DetailType'],
@@ -159,7 +192,7 @@ class InvoiceSyncService
                     $this->itemCache[$itemId] = $item;
                 }
                 $itemType = is_string($item['Type'] ?? null) ? $item['Type'] : null;
-                if (in_array($itemType, ['Inventory', 'NonInventory'], true)) {
+                if (($filters['items'][$itemId]['membership'] ?? null) === 'product' && in_array($itemType, ['Inventory', 'NonInventory'], true)) {
                     $matches = Asset::where('quickbooks_id', $itemId)->limit(2)->get();
                     $asset = $matches->count() === 1 ? $matches->first() : null;
                 }
@@ -171,7 +204,7 @@ class InvoiceSyncService
                 'amount' => $line['Amount'] ?? 0, 'tax_code' => QuickBooksReadGateway::ref($detail['TaxCodeRef'] ?? null), 'raw_payload' => $line];
         }
 
-        return DB::transaction(function () use ($p, $realm, $customer, $customerPayload, $lines, $storedPayload) {
+        return DB::transaction(function () use ($p, $realm, $customer, $customerPayload, $lines, $storedPayload, $filters) {
             app(QuickBooksSyncLock::class)->assertOwned();
             $customer ??= $this->customers->import($customerPayload);
             Customer::whereKey($customer->id)->lockForUpdate()->firstOrFail();
@@ -198,6 +231,7 @@ class InvoiceSyncService
                 'discount_total' => collect($lines)->where('detail_type', 'DiscountLineDetail')->sum('amount'),
                 'quickbooks_updated_at' => $p['MetaData']['LastUpdatedTime'] ?? null, 'last_synced_at' => now(),
                 'sync_status' => 'synced', 'sync_error' => null, 'raw_payload' => $p]);
+            $invoice->metadata = array_replace($invoice->metadata ?? [], ['operational_filters' => $filters]);
             foreach (['BillAddr' => 'billing_address', 'ShipAddr' => 'shipping_address'] as $source => $target) {
                 if (array_key_exists($source, $p)) {
                     $invoice->$target = $p[$source];
@@ -208,10 +242,14 @@ class InvoiceSyncService
             $invoice->lines()->createMany($lines);
             $diagnostics = [];
             try {
-                $current = $this->requirements->resolve($invoice, false);
+                $current = ! $invoice->work_order_id && $filters['result'] === 'excluded' ? [] : $this->requirements->resolve($invoice, false, $filters);
             } catch (ValidationException $e) {
                 $current = null;
                 $diagnostics = InvoiceOperationalException::diagnostics($e);
+            }
+            if ($filters['result'] === 'review') {
+                $current = null;
+                $diagnostics[] = ['code' => 'filter_review', 'message' => 'Payment or category requires review.'];
             }
             if ($invoice->work_order_id) {
                 $snapshot = $invoice->operation_snapshot;

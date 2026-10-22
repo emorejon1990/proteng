@@ -93,8 +93,13 @@ class InvoiceSelectiveSyncService
                             if ($before !== $approval['states'][$id]) {
                                 throw new \RuntimeException('Local invoice changed after Dry Run.');
                             }
-                            $invoice = $importer->import($input['responses']['Invoice'][$id], $input['realm']);
-                            $result = ['consulted' => true] + $this->verification->verify($input['responses']['Invoice'][$id], $before, $invoice, $input['realm']);
+                            $filters = $input['filters'][$id];
+                            if (! $before['invoice'] && $filters['result'] !== 'candidate') {
+                                $result = ['consulted' => true] + $this->verification->filtered($input['responses']['Invoice'][$id], $before, $filters);
+                            } else {
+                                $invoice = $importer->import($input['responses']['Invoice'][$id], $input['realm'], $filters);
+                                $result = ['consulted' => true] + $this->verification->verify($input['responses']['Invoice'][$id], $before, $invoice, $input['realm'], $filters);
+                            }
                             if (! $result['passed']) {
                                 throw new \RuntimeException('Mandatory integrity checks failed.');
                             }
@@ -166,6 +171,23 @@ class InvoiceSelectiveSyncService
             throw new \RuntimeException('Existing invoice company differs from the connected company.');
         }
         $input = ['realm' => $realm, 'environment' => $environment, 'responses' => ['Invoice' => [], 'Customer' => [], 'Item' => []], 'api_seconds' => []];
+        $failedItems = [];
+        $readItem = function (string $id) use (&$input, &$failedItems, $realm, $environment): array {
+            if (isset($failedItems[$id])) {
+                throw new InvoiceDataException('Item or category is unavailable.');
+            }
+            if (! isset($input['responses']['Item'][$id])) {
+                $this->assertConnection($realm, $environment);
+                try {
+                    $input['responses']['Item'][$id] = $this->gateway->find('Item', $id);
+                } catch (\Throwable $e) {
+                    $failedItems[$id] = true;
+                    throw $e;
+                }
+            }
+
+            return $input['responses']['Item'][$id];
+        };
         foreach (self::IDS as $id) {
             $started = microtime(true);
             $this->activeId = $id;
@@ -179,29 +201,15 @@ class InvoiceSelectiveSyncService
             $this->captureStatus[$id]['consulted'] = true;
             $this->captureStatus[$id]['line_count'] = is_array($payload['Line'] ?? null) ? count($payload['Line']) : null;
             $this->captureStatus[$id]['total'] = is_numeric($payload['TotalAmt'] ?? null) ? number_format((float) $payload['TotalAmt'], 2, '.', '') : null;
+            // Always resolve current categories, even when the stored Invoice payload is unchanged.
+            $input['filters'][$id] = app(InvoiceRequirements::class)->filters($payload, $readItem);
+            $this->captureStatus[$id]['filters'] = $input['filters'][$id];
+            $this->captureStatus[$id]['balance'] = $payload['Balance'] ?? null;
             try {
                 $customer = QuickBooksReadGateway::entityRef($payload['CustomerRef'] ?? null, ['entity' => 'Customer']);
                 if (! DB::table('customers')->where('quickbooks_id', $customer)->exists() && ! isset($input['responses']['Customer'][$customer])) {
                     $this->assertConnection($realm, $environment);
                     $input['responses']['Customer'][$customer] = $this->gateway->find('Customer', $customer);
-                }
-                $local = Invoice::where('quickbooks_id', $id)->first();
-                $stored = json_decode(json_encode($payload, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
-                if (! $local || ! InvoiceSyncService::payloadMatches($local->raw_payload, $stored)) {
-                    foreach ($payload['Line'] ?? [] as $line) {
-                        if (($line['DetailType'] ?? null) !== 'SalesItemLineDetail' || ! is_array($line['SalesItemLineDetail'] ?? null)) {
-                            continue;
-                        }
-                        $ref = $line['SalesItemLineDetail']['ItemRef'] ?? null;
-                        if ($ref === null || QuickBooksReadGateway::ref($ref) === 'SHIPPING_ITEM_ID') {
-                            continue;
-                        }
-                        $item = QuickBooksReadGateway::entityRef($ref, ['entity' => 'Item']);
-                        if (! isset($input['responses']['Item'][$item])) {
-                            $this->assertConnection($realm, $environment);
-                            $input['responses']['Item'][$item] = $this->gateway->find('Item', $item);
-                        }
-                    }
                 }
             } catch (InvoiceDataException $e) {
                 // The shared importer will report invalid invoice references in the sandbox.
