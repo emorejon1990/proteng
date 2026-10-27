@@ -138,6 +138,7 @@ class WorkOrderResource extends Resource
                 //
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make()
                     ->visible(function ($record): bool {
                         return ! $record->isReviewOrder() && ! $record->isInstallationOrder() && (int) $record->status_id === app(ProductionCatalog::class)->id('new_order_status');

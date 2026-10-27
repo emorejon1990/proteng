@@ -11,9 +11,14 @@ class EditInstallation extends EditRecord
 {
     protected static string $resource = InstallationResource::class;
 
+    protected ?bool $hasDatabaseTransactions = true;
+
     protected function afterSave(): void
     {
         app(InstallationService::class)->syncAssignment($this->record);
+        if ($this->record->status === 'in_progress') {
+            app(InstallationProgressService::class)->startIfNeeded($this->record);
+        }
         app(InstallationProgressService::class)->completeIfAllDone($this->record);
     }
 

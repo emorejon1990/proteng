@@ -45,6 +45,12 @@ class WorkOrderPolicy
             [app(ProductionCatalog::class)->id('new_order_status'), app(ProductionCatalog::class)->id('approved_order_status')], true);
     }
 
+    public function assignInvoice(User $user, WorkOrder $workOrder): bool
+    {
+        return ! $user->hasRole('Customer') && $user->hasRole(['Admin', 'Manager'])
+            && $workOrder->isInstallationOrder() && $workOrder->installation()->exists();
+    }
+
     /**
      * Determine whether the user can delete the model.
      */
