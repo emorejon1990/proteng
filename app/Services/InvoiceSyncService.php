@@ -24,6 +24,34 @@ class InvoiceSyncService
 
     private array $itemFailures = [];
 
+    public function resetReadCache(): void
+    {
+        $this->itemCache = [];
+        $this->itemFailures = [];
+    }
+
+    /** Same filtering/import path as full sync; caller owns the checkpoint transaction. */
+    public function syncPayload(array $payload, string $realm): string
+    {
+        $id = QuickBooksReadGateway::entityRef($payload['Id'] ?? null, ['entity' => 'Invoice']);
+        try {
+            $filters = $this->filtersFor($payload);
+            if ($filters['result'] !== 'candidate' && ! Invoice::where('quickbooks_id', $id)->exists()) {
+                InvoiceEvent::create(['event' => 'Invoice Filter '.ucfirst($filters['result']),
+                    'metadata' => ['quickbooks_id' => $id, 'filters' => $filters]]);
+
+                return $filters['result'];
+            }
+            $this->import($payload, $realm, $filters);
+
+            return 'synced';
+        } catch (InvoiceDataException $e) {
+            $this->failed($id, $e);
+
+            return 'failed';
+        }
+    }
+
     public function filtersFor(array $payload): array
     {
         return $this->requirements->filters($payload, function (string $id): array {
@@ -62,22 +90,7 @@ class InvoiceSyncService
             $id = QuickBooksReadGateway::entityRef($payload['Id'] ?? null, ['entity' => 'Invoice']);
             $currentId = $id;
             $seen[$id] = true;
-            try {
-                $filters = $this->filtersFor($payload);
-                if ($filters['result'] !== 'candidate' && ! Invoice::where('quickbooks_id', $id)->exists()) {
-                    $summary[$filters['result']]++;
-                    InvoiceEvent::create(['event' => 'Invoice Filter '.ucfirst($filters['result']),
-                        'metadata' => ['quickbooks_id' => $id, 'filters' => $filters]]);
-                    $currentId = null;
-
-                    return;
-                }
-                $this->import($payload, $this->gateway->realm(), $filters);
-                $summary['synced']++;
-            } catch (InvoiceDataException $e) {
-                $this->failed($id, $e);
-                $summary['failed']++;
-            }
+            $summary[$this->syncPayload($payload, $this->gateway->realm())]++;
             $currentId = null;
         };
         try {
@@ -116,7 +129,7 @@ class InvoiceSyncService
         }
     }
 
-    private function assertRealm(string $realm): void
+    public function assertRealm(string $realm): void
     {
         if (Invoice::whereNotNull('realm_id')->where('realm_id', '!=', $realm)->exists()) {
             throw new \RuntimeException('Multiple QuickBooks companies are not supported by the existing customer/asset catalog.');

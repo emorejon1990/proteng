@@ -36,6 +36,7 @@ return [
     ],
 
     'quickbooks' => [
+        'invoice_batch_size' => env('QB_INVOICE_BATCH_SIZE', 5),
         'client_id' => env('QB_CLIENT_ID'),
         'client_secret' => env('QB_CLIENT_SECRET'),
         'redirect_uri' => env('QB_REDIRECT_URI'),

@@ -4,6 +4,7 @@ namespace App\Filament\Admin\Pages;
 
 use App\Services\AssetSyncService;
 use App\Services\CustomerSyncService;
+use App\Services\InvoiceBatchSyncService;
 use App\Services\InvoiceSelectiveSyncService;
 use App\Services\InvoiceSyncService;
 use App\Services\QuickBooksSyncLock;
@@ -52,11 +53,41 @@ class QuickBooksSync extends Page
         }
     }
 
+    #[Locked]
+    public array $invoiceReport = [];
+
+    public function mount(): void
+    {
+        abort_unless(static::canAccess() && ! Auth::user()->hasRole('Customer'), 403);
+        $this->invoiceReport = app(InvoiceBatchSyncService::class)->current(Auth::user());
+    }
+
+    public function continueInvoiceSync(): void
+    {
+        abort_unless(Auth::user()?->hasRole('Admin') && ! Auth::user()->hasRole('Customer'), 403);
+        if (($this->invoiceReport['status'] ?? null) !== 'running') {
+            return;
+        }
+        try {
+            $this->invoiceReport = app(InvoiceBatchSyncService::class)->advance(Auth::user(), $this->invoiceReport['run_id']);
+            if ($this->invoiceReport['status'] === 'completed') {
+                $summary = $this->invoiceReport['summary'];
+                $partial = $summary['failed'] || $summary['review'];
+                Notification::make()->title($partial ? 'Invoice sync partially completed' : 'Invoice sync completed')
+                    ->body($summary['synced'].' synchronized; '.$summary['excluded'].' excluded; '.$summary['failed'].' failed; '.$summary['review'].' require review. Review Invoice Sync Events.')
+                    ->status($partial ? 'warning' : 'success')->send();
+            }
+        } catch (\Throwable $e) {
+            $this->invoiceReport['status'] = 'stopped';
+            $this->invoiceReport['error'] = 'Sync paused. Another request may still be processing. Press Sync Invoices to resume safely.';
+        }
+    }
+
     public static function canAccess(): bool
     {
         $user = Auth::user();
 
-        return $user && $user->hasRole('Admin');
+        return $user && $user->hasRole('Admin') && ! $user->hasRole('Customer');
     }
 
     protected function getHeaderActions(): array
@@ -129,22 +160,12 @@ class QuickBooksSync extends Page
             Action::make('syncInvoices')
                 ->label('Sync Invoices')
                 ->action(function () {
-                    abort_unless(Auth::user()?->hasRole('Admin'), 403);
                     try {
-                        $summary = app(InvoiceSyncService::class)->sync();
+                        $this->invoiceReport = app(InvoiceBatchSyncService::class)->start(Auth::user());
                     } catch (\Throwable $e) {
-                        // Query exceptions can contain full invoice bindings; keep diagnostics sanitized.
-                        Log::error('Invoice sync action stopped', ['exception_type' => get_class($e)]);
-                        Notification::make()->title('Invoice sync failed')->body('Previous data was preserved. Review sync errors and the QuickBooks connection.')->danger()->send();
-
-                        return;
+                        Log::error('Invoice batch start unavailable', ['exception_type' => get_class($e)]);
+                        Notification::make()->title('Invoice sync unavailable')->body('Check the connection, migrations and active synchronization. Saved progress is preserved.')->danger()->send();
                     }
-
-                    Notification::make()
-                        ->title($summary['failed'] ? 'Invoice sync partially completed' : 'Invoices synced successfully')
-                        ->body($summary['synced'].' synchronized; '.$summary['failed'].' failed; '.($summary['excluded'] ?? 0).' excluded; '.($summary['review'] ?? 0).' require review. Review Invoice Sync Events.')
-                        ->status($summary['failed'] || ($summary['review'] ?? 0) ? 'warning' : 'success')
-                        ->send();
                 }),
 
             Action::make('syncProducts')

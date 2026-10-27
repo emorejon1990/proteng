@@ -1,4 +1,17 @@
 <x-filament-panels::page>
+    @if ($invoiceReport !== [])
+        <section @if (($invoiceReport['status'] ?? null) === 'running') wire:poll.2s="continueInvoiceSync" @endif class="space-y-3 rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
+            <h2 class="font-semibold">Invoice synchronization</h2>
+            <p>Status: {{ $invoiceReport['status'] }}. {{ $invoiceReport['phase'] === 'discover' ? 'Finding invoices' : 'Importing invoices' }}.</p>
+            <p>{{ count($invoiceReport['ids']) }} invoices identified. Keep this page open to continue automatically; use Sync Invoices to resume after an interruption.</p>
+            <dl class="grid grid-cols-2 gap-2 md:grid-cols-5">
+                @foreach (['processed' => 'Processed', 'synced' => 'Synchronized', 'excluded' => 'Excluded', 'failed' => 'Failed', 'review' => 'Require review'] as $key => $label)
+                    <div><dt>{{ $label }}</dt><dd>{{ $invoiceReport['summary'][$key] }}</dd></div>
+                @endforeach
+            </dl>
+            @if ($invoiceReport['error'] ?? null)<p role="alert" class="text-danger-600">{{ $invoiceReport['error'] }}</p>@endif
+        </section>
+    @endif
     @if ($selectiveReport !== [])
         <section @if ($selectiveRunId !== null) wire:poll.1s="continueSelectiveDryRun" @endif class="space-y-3 rounded-xl bg-white p-4 shadow-sm dark:bg-gray-900">
             <h2 class="font-semibold">Dry Run — up to 50 pending invoices</h2>
