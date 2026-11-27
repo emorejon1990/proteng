@@ -7,6 +7,7 @@ return [
         'distribution_type' => env('PRODUCTION_DISTRIBUTION_TYPE_ID'),
         'installation_type' => env('PRODUCTION_INSTALLATION_TYPE_ID'),
         'distribution_location' => env('PRODUCTION_DISTRIBUTION_LOCATION_ID'),
+        'installed_location' => env('PRODUCTION_INSTALLED_LOCATION_ID'),
         'assemble_center' => env('PRODUCTION_ASSEMBLE_CENTER_ID'),
         'production_location' => env('PRODUCTION_LOCATION_ID'),
         'review_type' => env('PRODUCTION_REVIEW_TYPE_ID'),

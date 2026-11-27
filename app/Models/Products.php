@@ -59,6 +59,11 @@ class Products extends Model
         return $this->hasMany(WorkOrderProduct::class, 'product_id');
     }
 
+    public function installedProducts(): HasMany
+    {
+        return $this->hasMany(InstalledProduct::class, 'product_id');
+    }
+
     public function cycles(): HasMany
     {
         return $this->hasMany(ProductCycle::class, 'product_id')->orderBy('cycle_number');

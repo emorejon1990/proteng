@@ -13,6 +13,7 @@ use Filament\Facades\Filament;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Forms\Components\Repeater;
 use Filament\Forms\Components\Section;
 use Filament\Forms\Components\Select;
@@ -134,6 +135,15 @@ class InstallationResource extends Resource
                         ])
                         ->default('draft')
                         ->required(),
+                ]),
+
+            Section::make('Installed products')
+                ->visibleOn('view')
+                ->schema([
+                    Placeholder::make('installed_products')->hiddenLabel()
+                        ->content(fn (?Installation $record) => view('filament.installations.installed-products', [
+                            'installedProducts' => $record?->installedProducts()->withTraceabilityDetails()->get() ?? collect(),
+                        ])),
                 ]),
 
             Section::make('Steps')

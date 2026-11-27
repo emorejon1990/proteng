@@ -22,6 +22,28 @@
                 </div>
             </div>
 
+            @can('view', $installation)
+                <x-filament::section>
+                    <x-slot name="heading">Installed products</x-slot>
+                    @if ($installation->status === \App\Models\Installation::STATUS_IN_PROGRESS && $installation->work_order_id)
+                        <form wire:submit="registerInstalledProduct" class="space-y-2">
+                            <label for="installation-serial">Product serial</label>
+                            <x-filament::input.wrapper>
+                                <x-filament::input id="installation-serial" type="text" wire:model="installationSerial"
+                                    maxlength="255" autocomplete="off" required />
+                            </x-filament::input.wrapper>
+                            @error('installationSerial') <p role="alert" class="text-danger-600">{{ $message }}</p> @enderror
+                            <x-filament::button type="submit" wire:loading.attr="disabled" wire:target="registerInstalledProduct">
+                                Register installed product
+                            </x-filament::button>
+                        </form>
+                    @endif
+                    @include('filament.installations.installed-products', [
+                        'installedProducts' => $installation->installedProducts()->withTraceabilityDetails()->get(),
+                    ])
+                </x-filament::section>
+            @endcan
+
             @php $step = $this->currentStep(); @endphp
 
             @if ($completed)

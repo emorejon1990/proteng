@@ -306,6 +306,24 @@ it('renders the Worker page and scopes camera selection to its chosen distributi
         ->assertSet('scanOrderId', null);
     Livewire::test(WorkOrderDistributionEditor::class, ['workOrder' => $order])
         ->call('scanCamera', $order->id + 1, $product->serial)->assertViewHas('complete', false)
-        ->call('scanCamera', $order->id, $product->serial)->assertHasNoErrors()->assertViewHas('complete', true);
+        ->call('scanCamera', $order->id, $product->serial)->assertHasNoErrors()->assertViewHas('complete', true)
+        ->assertDontSee('Retirar')
+        ->call('removeSelection', WorkOrderProduct::where('state', 'reserved')->firstOrFail()->id)->assertForbidden();
     expect(WorkOrderProduct::where('state', 'reserved')->count())->toBe(1);
 });
+
+it('allows admins managers and workers with an authorized role to withdraw', function (array $roles) {
+    config(['permission.cache.store' => 'array']);
+    app(PermissionRegistrar::class)->initializeCache();
+    foreach ($roles as $role) {
+        Role::create(['name' => $role, 'guard_name' => 'web']);
+    }
+    $user = User::findOrFail(1)->syncRoles($roles);
+    $this->actingAs($user);
+    $order = distributionOrder([31 => 1]);
+    $product = distributionStock();
+    $selection = app(DistributionSelectionService::class)->reserve($order->id, 31, $product->serial, $user);
+    Livewire::test(WorkOrderDistributionEditor::class, ['workOrder' => $order])
+        ->assertSee('Retirar')->call('removeSelection', $selection->id)->assertHasNoErrors();
+    expect($selection->fresh()->state)->toBe('released');
+})->with([[['Admin']], [['Manager']], [['Worker', 'Manager']]]);

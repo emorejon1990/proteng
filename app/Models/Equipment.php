@@ -45,4 +45,9 @@ class Equipment extends Model
     {
         return $this->hasMany(Installation::class);
     }
+
+    public function installedProducts(): HasMany
+    {
+        return $this->hasMany(InstalledProduct::class);
+    }
 }

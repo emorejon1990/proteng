@@ -8,6 +8,8 @@ use Filament\Pages\Page;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Auth;
 use App\Services\InstallationProgressService;
+use App\Services\InstallationProductService;
+use Livewire\Attributes\Locked;
 
 class WorkerInstallationWizard extends Page
 {
@@ -18,7 +20,9 @@ class WorkerInstallationWizard extends Page
     protected static ?string $slug = 'installations/current';
     protected static string $view = 'filament.worker.pages.worker-installation-wizard';
 
+    #[Locked]
     public ?Installation $installation = null;
+    public string $installationSerial = '';
     public array $steps = [];
     public int $currentStepIndex = 0;
     public bool $currentStepDone = false;
@@ -61,6 +65,17 @@ class WorkerInstallationWizard extends Page
             $this->currentStepIndex--;
             $this->hydrateCurrentStepState();
         }
+    }
+
+    public function registerInstalledProduct(): void
+    {
+        abort_unless($this->installation, 404);
+        $this->resetValidation('installationSerial');
+        $record = app(InstallationProductService::class)->register($this->installation, $this->installationSerial, Auth::user());
+        $this->installationSerial = '';
+        $this->installation->refresh();
+
+        Notification::make()->title('Installed serial recorded: '.$record->serial_number)->success()->send();
     }
 
     public function nextStep(): void
