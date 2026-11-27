@@ -38,13 +38,14 @@ class InvoiceSyncService
             $filters = $this->filtersFor($payload);
             if ($filters['result'] !== 'candidate' && ! Invoice::where('quickbooks_id', $id)->exists()) {
                 InvoiceEvent::create(['event' => 'Invoice Filter '.ucfirst($filters['result']),
-                    'metadata' => ['quickbooks_id' => $id, 'filters' => $filters]]);
+                    'metadata' => ['quickbooks_id' => $id, 'invoice_number' => is_scalar($payload['DocNumber'] ?? null) ? (string) $payload['DocNumber'] : null,
+                        'filters' => $filters, 'operational_diagnostics' => $filters['result'] === 'review' ? $this->filterDiagnostics($filters) : []]]);
 
                 return $filters['result'];
             }
-            $this->import($payload, $realm, $filters);
+            $invoice = $this->import($payload, $realm, $filters);
 
-            return 'synced';
+            return in_array($invoice->operation_status, ['requires_review', 'sync_conflict'], true) ? 'review' : 'synced';
         } catch (InvoiceDataException $e) {
             $this->failed($id, $e);
 
@@ -156,9 +157,9 @@ class InvoiceSyncService
         $filters ??= $this->filtersFor($p);
         // Lock and compare before Item reads. An unchanged invoice must retain its line identities.
         $storedPayload = json_decode(json_encode($p, JSON_THROW_ON_ERROR), true, 512, JSON_THROW_ON_ERROR);
-        $unchanged = DB::transaction(function () use ($p, $realm, $storedPayload) {
+        $unchanged = DB::transaction(function () use ($p, $realm, $storedPayload, $filters) {
             $invoice = Invoice::where('quickbooks_id', (string) $p['Id'])->lockForUpdate()->first();
-            if (! $invoice || $invoice->realm_id !== $realm || ! self::payloadMatches($invoice->raw_payload, $storedPayload)) {
+            if (! $invoice || ! $this->canReuseImport($invoice, $realm, $storedPayload, $filters)) {
                 return null;
             }
             if ($invoice->sync_status !== 'synced' || $invoice->sync_error !== null) {
@@ -223,7 +224,7 @@ class InvoiceSyncService
             Customer::whereKey($customer->id)->lockForUpdate()->firstOrFail();
             $invoice = Invoice::where('quickbooks_id', (string) $p['Id'])->lockForUpdate()->first();
             // Another importer may have saved this same payload while Item reads were in flight.
-            if ($invoice && $invoice->realm_id === $realm && self::payloadMatches($invoice->raw_payload, $storedPayload)) {
+            if ($invoice && $this->canReuseImport($invoice, $realm, $storedPayload, $filters)) {
                 if ($invoice->sync_status !== 'synced' || $invoice->sync_error !== null) {
                     $invoice->update(['sync_status' => 'synced', 'sync_error' => null]);
                 }
@@ -234,7 +235,7 @@ class InvoiceSyncService
             }
             $new = ! $invoice;
             $invoice ??= new Invoice(['quickbooks_id' => (string) $p['Id']]);
-            $changed = ! self::payloadMatches($invoice->raw_payload, $p);
+            $changed = ! self::payloadMatches($invoice->raw_payload, $storedPayload);
             $invoice->fill(['realm_id' => $realm, 'customer_id' => $customer->id, 'invoice_number' => $p['DocNumber'] ?? null,
                 'total' => $p['TotalAmt'], 'balance' => $p['Balance'],
                 'status' => strtolower(trim($p['PrivateNote'] ?? '')) === 'voided' ? 'void' : ($p['Balance'] > 0 ? 'open' : 'paid'),
@@ -251,8 +252,14 @@ class InvoiceSyncService
                 }
             }
             $invoice->save();
-            $invoice->lines()->delete();
-            $invoice->lines()->createMany($lines);
+            if ($changed || $new) {
+                $invoice->lines()->delete();
+                $invoice->lines()->createMany($lines);
+            } else {
+                foreach ($lines as $line) {
+                    $invoice->lines()->updateOrCreate(['line_number' => $line['line_number']], $line);
+                }
+            }
             $diagnostics = [];
             try {
                 $current = ! $invoice->work_order_id && $filters['result'] === 'excluded' ? [] : $this->requirements->resolve($invoice, false, $filters);
@@ -262,13 +269,20 @@ class InvoiceSyncService
             }
             if ($filters['result'] === 'review') {
                 $current = null;
-                $diagnostics[] = ['code' => 'filter_review', 'message' => 'Payment or category requires review.'];
+                $diagnostics = [...$diagnostics, ...$this->filterDiagnostics($filters)];
             }
             if ($invoice->work_order_id) {
                 $snapshot = $invoice->operation_snapshot;
-                $conflict = $current === null || $current != ($snapshot['requirements'] ?? [])
-                    || (string) $customer->quickbooks_id !== ($snapshot['customer_quickbooks_id'] ?? '') || $invoice->status === 'void';
-                if ($conflict) {
+                if ($current !== null && $current != ($snapshot['requirements'] ?? [])) {
+                    $diagnostics[] = ['code' => 'requirements_changed', 'message' => 'Physical requirements differ from the linked snapshot.'];
+                }
+                if ((string) $customer->quickbooks_id !== ($snapshot['customer_quickbooks_id'] ?? '')) {
+                    $diagnostics[] = ['code' => 'customer_changed', 'message' => 'The QuickBooks customer differs from the linked operation.'];
+                }
+                if ($invoice->status === 'void') {
+                    $diagnostics[] = ['code' => 'invoice_voided', 'message' => 'QuickBooks voided the linked invoice.'];
+                }
+                if ($diagnostics || $current === null) {
                     $invoice->operation_status = 'sync_conflict';
                     $invoice->events()->create(['event' => 'Invoice Sync Conflict', 'work_order_id' => $invoice->work_order_id,
                         'metadata' => ['snapshot' => $snapshot, 'current_requirements' => $current, 'accounting_status' => $invoice->status]]);
@@ -282,6 +296,38 @@ class InvoiceSyncService
 
             return $invoice->fresh();
         }, 3);
+    }
+
+    private function canReuseImport(Invoice $invoice, string $realm, array $payload, array $filters): bool
+    {
+        $storedFilters = $invoice->metadata['operational_filters'] ?? null;
+
+        if ($invoice->realm_id !== $realm || ! self::payloadMatches($invoice->raw_payload, $payload)
+            || ! is_array($storedFilters) || ! self::payloadMatches($storedFilters, $filters)) {
+            return false;
+        }
+        if ($invoice->operation_status !== 'requires_review') {
+            return true;
+        }
+
+        // A repaired catalog can change mapping diagnostics even when QuickBooks sends identical data.
+        $event = $invoice->events()->whereNotNull('metadata->operational_diagnostics')->latest('id')->first();
+        $codes = array_column($event?->metadata['operational_diagnostics'] ?? [], 'code');
+
+        return ! array_intersect($codes, ['missing_asset', 'duplicate_asset', 'mismatched_asset']);
+    }
+
+    private function filterDiagnostics(array $filters): array
+    {
+        $reasons = [];
+        if ($filters['payment_filter'] === 'review') {
+            $reasons[] = ['code' => 'payment_review', 'message' => 'Payment data is incomplete or inconsistent.'];
+        }
+        if ($filters['category_filter'] === 'review' || $filters['unknown_items'] > 0) {
+            $reasons[] = ['code' => 'category_review', 'message' => 'An ItemRef or its Product category could not be verified.'];
+        }
+
+        return $reasons ?: [['code' => 'filter_review', 'message' => 'An invoice line is incomplete or unsupported by the operational filter.']];
     }
 
     /** JSON object key order is not meaningful (MySQL JSON can reorder it); line array order is. */

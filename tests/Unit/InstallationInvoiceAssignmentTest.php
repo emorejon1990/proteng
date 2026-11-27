@@ -124,6 +124,9 @@ it('links a completed installation for authorized roles preserving operational r
     $order = $installation->workOrder->getRawOriginal();
     $steps = $installation->steps()->get()->map->getRawOriginal()->all();
     $assigned = app(InvoiceClassificationService::class)->assignToInstallation($installation->work_order_id, $invoice->id, $this->actor);
+    $retry = app(InvoiceClassificationService::class)->assignToInstallation($installation->work_order_id, $invoice->id, $this->actor);
+    expect($retry->getRawOriginal())->toBe($assigned->getRawOriginal())
+        ->and($invoice->events()->where('event', 'Invoice Assigned to Existing Installation')->count())->toBe(1);
     expect($assigned->work_order_id)->toBe($installation->work_order_id)->and($assigned->quickbooks_id)->toBe('500')
         ->and($assigned->realm_id)->toBe('test-realm')->and($assigned->operation_snapshot['link_mode'])->toBe('existing_installation')
         ->and($installation->fresh()->getRawOriginal())->toBe($before)->and($installation->workOrder->fresh()->getRawOriginal())->toBe($order)
@@ -197,9 +200,14 @@ it('creates through the existing Installations form without duplicating steps', 
 it('assigns from the existing Work Order detail action and hides a second assignment', function () {
     $installation = app(InstallationService::class)->create($this->data);
     $invoice = retrospectiveInvoice();
+    $missingMapping = retrospectiveInvoice('501');
+    $missingMapping->lines()->update(['asset_id' => null]);
     Filament\Facades\Filament::setCurrentPanel(Filament\Facades\Filament::getPanel('admin'));
-    Livewire\Livewire::test(ViewWorkOrder::class, ['record' => $installation->work_order_id])
-        ->assertActionVisible('assignInvoice')->callAction('assignInvoice', ['invoice_id' => $invoice->id])
+    $page = Livewire\Livewire::test(ViewWorkOrder::class, ['record' => $installation->work_order_id])
+        ->assertActionVisible('assignInvoice')->mountAction('assignInvoice');
+    $results = $page->instance()->getFormSelectSearchResults('mountedActionsData.0.invoice_id', '1600');
+    expect(array_column($results, 'value'))->toBe([(string) $invoice->id]);
+    $page->setActionData(['invoice_id' => $invoice->id])->callMountedAction()
         ->assertHasNoActionErrors()->assertActionHidden('assignInvoice')->assertSee('1600');
     expect($invoice->fresh()->work_order_id)->toBe($installation->work_order_id);
 });
@@ -228,4 +236,68 @@ it('links an already paid imported Product invoice without creating an operation
     $assigned = app(InvoiceClassificationService::class)->assignToInstallation($installation->work_order_id, $invoice->id, $this->actor);
     expect($assigned->status)->toBe('paid')->and($assigned->work_order_id)->toBe($installation->work_order_id)
         ->and(WorkOrder::count())->toBe(1)->and(DB::table('wo_ass')->count())->toBe(0);
+});
+
+it('allows only one of two concurrent Work Orders to assign the same imported invoice', function () {
+    if (! function_exists('proc_open')) {
+        $this->markTestSkipped('Requires independent PHP processes.');
+    }
+    $first = app(InstallationService::class)->create($this->data);
+    $second = app(InstallationService::class)->create($this->data);
+    $invoice = retrospectiveInvoice();
+    $file = sys_get_temp_dir().DIRECTORY_SEPARATOR.'proteng-invoice-test-'.bin2hex(random_bytes(12)).'.sqlite';
+    $workers = [];
+    try {
+        DB::statement('VACUUM INTO ?', [$file]);
+        $connection = ['driver' => 'sqlite', 'database' => $file, 'foreign_key_constraints' => true, 'busy_timeout' => 5000];
+        foreach ([$first, $second] as $installation) {
+            $process = proc_open([PHP_BINARY, base_path('tests/Support/invoice-concurrency-worker.php')],
+                [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes, base_path());
+            if (! is_resource($process)) {
+                throw new RuntimeException('Unable to start an isolated worker.');
+            }
+            $workers[] = [$process, $pipes];
+            fwrite($pipes[0], json_encode(['connection' => $connection, 'invoice' => $invoice->id,
+                'order' => $installation->work_order_id], JSON_THROW_ON_ERROR)."\n");
+            fflush($pipes[0]);
+            stream_set_timeout($pipes[1], 30);
+            expect(trim(fgets($pipes[1]) ?: ''))->toBe('READY');
+        }
+        foreach ($workers as [$process, $pipes]) {
+            fwrite($pipes[0], "GO\n");
+            fclose($pipes[0]);
+        }
+        $outcomes = [];
+        foreach ($workers as [$process, $pipes]) {
+            $outcomes[] = trim(fgets($pipes[1]) ?: '');
+            expect(stream_get_contents($pipes[2]))->toBe('');
+            fclose($pipes[1]);
+            fclose($pipes[2]);
+            expect(proc_close($process))->toBe(0);
+        }
+        expect(array_count_values($outcomes)['DONE'] ?? 0)->toBe(1);
+        foreach ($outcomes as $outcome) {
+            expect($outcome)->toBeIn(['DONE', 'REJECTED', 'BLOCKED']);
+        }
+        $database = new PDO('sqlite:'.$file);
+        expect((int) $database->query('select work_order_id from invoices')->fetchColumn())
+            ->toBeIn([$first->work_order_id, $second->work_order_id]);
+        expect((int) $database->query("select count(*) from invoice_events where event = 'Invoice Assigned to Existing Installation'")->fetchColumn())->toBe(1);
+        $database = null;
+    } finally {
+        foreach ($workers as [$process, $pipes]) {
+            foreach ($pipes as $pipe) {
+                if (is_resource($pipe)) {
+                    fclose($pipe);
+                }
+            }
+            if (is_resource($process)) {
+                proc_terminate($process);
+                proc_close($process);
+            }
+        }
+        if (is_file($file)) {
+            unlink($file);
+        }
+    }
 });

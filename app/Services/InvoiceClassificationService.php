@@ -102,33 +102,15 @@ class InvoiceClassificationService
             $order = WorkOrder::whereKey($workOrderId)->lockForUpdate()->firstOrFail();
             Gate::forUser($actor)->authorize('assignInvoice', $order);
             $installation = Installation::where('work_order_id', $order->id)->lockForUpdate()->firstOrFail();
-            if ($order->invoice()->exists()) {
-                $this->fail('This Installation Work Order already has an Invoice.');
-            }
             $customer = Customer::whereKey($installation->customer_id)->lockForUpdate()->firstOrFail();
             $invoice = Invoice::whereKey($invoiceId)->lockForUpdate()->firstOrFail();
-            if ($invoice->work_order_id || $invoice->operation_type || $invoice->classified_at) {
-                $this->fail('This Invoice already belongs to an operation.');
+            if ((int) $invoice->work_order_id === $order->id && $invoice->operation_type === 'installation') {
+                return $invoice;
             }
-            if (! $invoice->quickbooks_id || ! $invoice->realm_id || $invoice->sync_status !== 'synced'
-                || ! $invoice->last_synced_at || $invoice->sync_error !== null || $invoice->status === 'void'
-                || in_array($invoice->operation_status, ['requires_review', 'sync_conflict'], true)
-                || (string) ($invoice->raw_payload['Id'] ?? '') !== (string) $invoice->quickbooks_id) {
-                $this->fail('Select a valid imported QuickBooks Invoice without pending synchronization errors.');
+            if ($order->invoice()->lockForUpdate()->first()) {
+                $this->fail('This Installation Work Order already has an Invoice.');
             }
-            if ((int) $invoice->customer_id !== (int) $customer->id || ! $customer->quickbooks_id
-                || QuickBooksReadGateway::ref($invoice->raw_payload['CustomerRef'] ?? null) !== (string) $customer->quickbooks_id
-                || (string) $installation->customer_quickbooks_id !== (string) $customer->quickbooks_id
-                || (string) $order->customer_quickbooks_id !== (string) $customer->quickbooks_id) {
-                $this->fail('Invoice, Installation and Work Order must belong to the same QuickBooks customer.');
-            }
-            $filters = $invoice->metadata['operational_filters'] ?? null;
-            if (! $filters || ($filters['category_filter'] ?? null) !== 'passed'
-                || ($filters['unknown_items'] ?? 0) > 0 || ($filters['payment_filter'] ?? null) === 'review') {
-                $this->fail('The imported Invoice categories or payment information require review.');
-            }
-            // Paid invoices may be linked retrospectively. This does not create an operation.
-            $requirements = $this->requirements->resolve($invoice, true, $filters);
+            $requirements = $this->installationInvoiceRequirements($invoice, $order, $installation, $customer);
             $invoice->update(['work_order_id' => $order->id, 'operation_type' => 'installation',
                 'operation_status' => 'created', 'classified_at' => now(), 'classified_by' => $actor->id,
                 'operation_snapshot' => ['link_mode' => 'existing_installation', 'installation_id' => $installation->id,
@@ -139,6 +121,38 @@ class InvoiceClassificationService
 
             return $invoice->fresh();
         }, 3);
+    }
+
+    /** Local preflight for the picker and the locked assignment. */
+    public function installationInvoiceRequirements(Invoice $invoice, WorkOrder $order, Installation $installation, Customer $customer): array
+    {
+        if ($invoice->work_order_id || $invoice->operation_type || $invoice->classified_at) {
+            $this->fail('This Invoice already belongs to an operation.');
+        }
+        if (! $invoice->quickbooks_id || ! $invoice->realm_id || $invoice->sync_status !== 'synced'
+            || ! $invoice->last_synced_at || $invoice->sync_error !== null || $invoice->status === 'void'
+            || in_array($invoice->operation_status, ['requires_review', 'sync_conflict'], true)
+            || (string) ($invoice->raw_payload['Id'] ?? '') !== (string) $invoice->quickbooks_id) {
+            $this->fail('Select a valid imported QuickBooks Invoice without pending synchronization errors.');
+        }
+        try {
+            $invoiceCustomer = QuickBooksReadGateway::ref($invoice->raw_payload['CustomerRef'] ?? null);
+        } catch (InvoiceDataException) {
+            $this->fail('The imported Invoice has an invalid QuickBooks customer reference.');
+        }
+        if ((int) $invoice->customer_id !== (int) $customer->id || ! $customer->quickbooks_id
+            || $invoiceCustomer !== (string) $customer->quickbooks_id
+            || (string) $installation->customer_quickbooks_id !== (string) $customer->quickbooks_id
+            || (string) $order->customer_quickbooks_id !== (string) $customer->quickbooks_id) {
+            $this->fail('Invoice, Installation and Work Order must belong to the same QuickBooks customer.');
+        }
+        $filters = $invoice->metadata['operational_filters'] ?? null;
+        if (! $filters || ($filters['category_filter'] ?? null) !== 'passed'
+            || ($filters['unknown_items'] ?? 0) > 0 || ($filters['payment_filter'] ?? null) === 'review') {
+            $this->fail('The imported Invoice categories or payment information require review.');
+        }
+
+        return $this->requirements->resolve($invoice, true, $filters);
     }
 
     private function fail(string $message): never
