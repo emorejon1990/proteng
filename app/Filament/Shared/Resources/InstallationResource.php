@@ -6,7 +6,7 @@ use App\Filament\Manager\Resources\InvoiceResource;
 use App\Filament\Shared\Resources\InstallationResource\Pages;
 use App\Models\Customer;
 use App\Models\Equipment;
-use App\Models\EquipmentInstallationStep;
+use App\Services\InstallationService;
 use App\Models\Installation;
 use App\Models\User;
 use Filament\Facades\Filament;
@@ -54,9 +54,9 @@ class InstallationResource extends Resource
                 ->schema([
                     Select::make('equipment_id')
                         ->label('Equipment')
-                        ->relationship('equipment', 'model')
-                        ->getOptionLabelFromRecordUsing(fn (Equipment $record): string => trim("{$record->brand} {$record->model}"))
-                        ->searchable()
+                        ->relationship('equipment', 'model', fn (Builder $query) => $query->with('catalogModel.brand', 'owner'))
+                        ->getOptionLabelFromRecordUsing(fn (Equipment $record): string => $record->selectionLabel())
+                        ->searchable(['brand', 'model', 'identifier'])
                         ->preload()
                         ->live()
                         ->required()
@@ -65,23 +65,12 @@ class InstallationResource extends Resource
                                 return;
                             }
 
-                            $template = EquipmentInstallationStep::query()
-                                ->where('equipment_id', $state)
-                                ->orderBy('sort_order')
-                                ->get()
-                                ->map(fn ($step) => [
-                                    'title' => $step->title,
-                                    'description' => $step->description,
-                                    'sort_order' => $step->sort_order,
-                                    'is_required' => $step->is_required,
-                                    'img' => $step->img,
-                                    'is_done' => false,
-                                    'done_at' => null,
-                                    'notes' => null,
-                                ])
-                                ->toArray();
-
-                            $set('steps', $template);
+                            $equipment = Equipment::find($state);
+                            if ($equipment?->customer_id) {
+                                $set('customer_id', $equipment->customer_id);
+                                $set('customer_quickbooks_id', $equipment->owner?->quickbooks_id);
+                            }
+                            $set('steps', $equipment ? app(InstallationService::class)->templateStepData($equipment) : []);
                         }),
 
                     Select::make('customer_id')

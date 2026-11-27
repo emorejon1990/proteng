@@ -33,8 +33,17 @@ class CreateInstallation extends CreateRecord
     {
         $service = app(InstallationService::class);
 
-        if ($this->record->steps()->count() === 0) {
+        $steps = $this->record->steps()->orderBy('id')->get();
+        if ($steps->isEmpty()) {
             $service->cloneTemplateSteps($this->record);
+        } elseif ($this->record->equipment->equipment_model_id) {
+            $definition = fn ($step) => [
+                'title' => $step['title'], 'description' => $step['description'],
+                'sort_order' => (int) $step['sort_order'], 'is_required' => (bool) $step['is_required'], 'img' => $step['img'],
+            ];
+            if ($steps->map($definition)->all() !== array_map($definition, $service->templateStepData($this->record->equipment))) {
+                throw ValidationException::withMessages(['data.equipment_id' => 'The model guide changed. Reselect the equipment to load the current steps.']);
+            }
         }
         $progress = app(InstallationProgressService::class);
         if ($this->record->status === 'in_progress') {

@@ -46,7 +46,7 @@ class InvoiceClassificationService
             $requirements = $this->requirements->resolve($invoice, true, $filters);
             if ($type === 'installation') {
                 $equipment = Equipment::whereKey($configuration['equipment_id'] ?? null)->lockForUpdate()->first();
-                if (! $equipment || ! $equipment->installationTemplateSteps()->exists()) {
+                if (! $equipment || ! $equipment->templateStepsForNewInstallation()->exists()) {
                     $this->fail('Select equipment with configured installation steps.');
                 }
                 foreach (['inst_manager_user_id' => 'Inst_Manager', 'worker_user_id' => 'Worker'] as $field => $role) {
