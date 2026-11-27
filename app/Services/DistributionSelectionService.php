@@ -178,7 +178,10 @@ class DistributionSelectionService
                     || (int) $assignment?->work_order_product_id !== $association->id
                     || ($assignment->product_cycle_id === null ? $cycle !== null : (int) $assignment->product_cycle_id !== $cycle?->id)
                     || $product->orderAssociations()->whereKeyNot($association->id)->whereIn('state', ['active', 'reserved'])->exists()) {
-                    $this->fail('selection', 'Un tubo seleccionado dejó de estar disponible. Retíralo y escanea uno válido.');
+                    $instruction = $this->canRemove($actor)
+                        ? 'Retíralo y escanea uno válido.'
+                        : 'Pide a un Admin o Manager que retire la reserva antes de escanear otro.';
+                    $this->fail('selection', 'Un tubo seleccionado dejó de estar disponible. '.$instruction);
                 }
                 $counts[(int) $product->asset_id] = ($counts[(int) $product->asset_id] ?? 0) + 1;
             }
