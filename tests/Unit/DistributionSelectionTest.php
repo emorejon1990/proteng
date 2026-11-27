@@ -310,6 +310,9 @@ it('renders the Worker page and scopes camera selection to its chosen distributi
         ->assertDontSee('Retirar')
         ->call('removeSelection', WorkOrderProduct::where('state', 'reserved')->firstOrFail()->id)->assertForbidden();
     expect(WorkOrderProduct::where('state', 'reserved')->count())->toBe(1);
+    $product->update(['serial' => 'A9999999B']);
+    expect(fn () => app(DistributionSelectionService::class)->confirm($order->id, $user))
+        ->toThrow(ValidationException::class, 'Pide a un Admin o Manager');
 });
 
 it('allows admins managers and workers with an authorized role to withdraw', function (array $roles) {

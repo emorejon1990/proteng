@@ -15,7 +15,7 @@ class InstallationProgressService
     public function startIfNeeded(Installation $installation): void
     {
         DB::transaction(function () use ($installation) {
-            [$locked, $order] = $this->lockedRecords($installation);
+            [$locked, $order] = $this->lockRecords($installation);
             if (! in_array($locked->status, ['draft', 'scheduled', 'in_progress'], true)) {
                 return;
             }
@@ -45,7 +45,7 @@ class InstallationProgressService
     public function completeIfAllDone(Installation $installation): bool
     {
         return DB::transaction(function () use ($installation) {
-            [$locked, $order] = $this->lockedRecords($installation);
+            [$locked, $order] = $this->lockRecords($installation);
             if ($locked->steps()->where('is_done', false)->exists()) {
                 return false;
             }
@@ -65,7 +65,8 @@ class InstallationProgressService
         }, 3);
     }
 
-    private function lockedRecords(Installation $installation): array
+    /** @return array{Installation, WorkOrder|null} Call inside a transaction. */
+    public function lockRecords(Installation $installation): array
     {
         $current = Installation::findOrFail($installation->id);
         $order = $current->work_order_id ? WorkOrder::whereKey($current->work_order_id)->lockForUpdate()->firstOrFail() : null;

@@ -3,6 +3,7 @@
 use App\Filament\Shared\Resources\EquipmentResource\Pages\CreateEquipment;
 use App\Filament\Shared\Resources\EquipmentResource\Pages\EditEquipment;
 use App\Filament\Shared\Resources\EquipmentResource\Pages\ListEquipment;
+use App\Filament\Shared\Resources\InstallationResource\Pages\EditInstallation;
 use App\Filament\Shared\Resources\InstallationResource\Pages\ViewInstallation;
 use App\Filament\Shared\Resources\ProductsResource\Pages\ListProducts;
 use App\Filament\Worker\Pages\WorkerInstallationWizard;
@@ -89,6 +90,30 @@ it('installs a dispatched serial only for the matching customer and shows its hi
 });
 
 afterEach(fn () => DB::disconnect('sqlite'));
+
+it('protects the recorded customer and equipment while allowing other installation edits', function () {
+    $installation = app(InstallationService::class)->create($this->installationData);
+    app(InstallationProgressService::class)->startIfNeeded($installation);
+    $product = traceProduct(null, ['assambled' => true, 'location_id' => 44, 'status_id' => 56]);
+    $link = app(InstallationProductService::class)->register($installation, $product->serial, $this->worker);
+    $otherEquipment = Equipment::create(['brand' => 'Other', 'model' => 'Fleet', 'company' => 'Buyer']);
+    $otherCustomer = Customer::create(['display_name' => 'Other buyer', 'quickbooks_id' => '201']);
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    Livewire::test(EditInstallation::class, ['record' => $installation->getRouteKey()])
+        ->fillForm(['equipment_id' => $otherEquipment->id, 'customer_id' => $otherCustomer->id])
+        ->call('save')->assertHasFormErrors(['equipment_id', 'customer_id']);
+
+    $installation->refresh();
+    expect($installation->equipment_id)->toBe($link->equipment_id)
+        ->and($installation->customer_id)->toBe($link->customer_id)
+        ->and($installation->assignment->equipment_id)->toBe($link->equipment_id)
+        ->and($installation->assignment->customer_id)->toBe($link->customer_id);
+
+    Livewire::test(EditInstallation::class, ['record' => $installation->getRouteKey()])
+        ->fillForm(['performed_at' => '2026-11-27 10:00:00'])->call('save')->assertHasNoFormErrors();
+    expect($installation->fresh()->performed_at->format('Y-m-d H:i'))->toBe('2026-11-27 10:00');
+});
 
 it('creates edits searches and displays optional free form equipment identifiers', function () {
     Filament::setCurrentPanel(Filament::getPanel('admin'));
