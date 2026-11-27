@@ -6,10 +6,11 @@
 <x-filament-panels::page>
     {{-- Título: Brand - Model --}}
     <h1 class="text-3xl font-bold text-gray-800 mb-6">
-        {{ $equipment->brand }} - {{ $equipment->model }}
+        {{ $manual->equipment_name }}
     </h1>
 
     {{-- SECCIÓN: Goods y Assets en 2 columnas --}}
+    @if ($equipment)
     <div style="--cols-default: repeat(1, minmax(0, 1fr)); --cols-lg: repeat(2, minmax(0, 1fr));" class="grid grid-cols-[--cols-default] lg:grid-cols-[--cols-lg] fi-wi gap-6">
         {{-- Columna 1: Goods --}}
         <x-filament::card>
@@ -63,6 +64,7 @@
             @endif
         </x-filament::card>
     </div>
+    @endif
 
     {{-- SECCIÓN: Contenido del Manual --}}
     {{-- SECCIÓN: Contenido del Manual --}}

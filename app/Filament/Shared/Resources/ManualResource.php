@@ -5,6 +5,8 @@ namespace App\Filament\Shared\Resources;
 use Filament\Forms;
 use Filament\Tables;
 use App\Models\Manual;
+use App\Models\Equipment;
+use App\Models\EquipmentModel;
 use Filament\Forms\Form;
 use Filament\Tables\Table;
 use App\Support\MediaEmbed;
@@ -47,11 +49,16 @@ class ManualResource extends Resource
                         Select::make('equipment_id')
                             ->label('Equipment')
                             ->relationship('equipment', 'brand')
-                            ->getOptionLabelFromRecordUsing(fn ($record) => "{$record->brand} - {$record->model}")
-                            ->searchable()
+                            ->getOptionLabelFromRecordUsing(fn (Equipment $record) => $record->selectionLabel())
+                            ->searchable(['brand', 'model', 'identifier'])
                             ->live()
                             ->preload()
-                            ->required(),
+                            ->requiredWithout('equipment_model_id'),
+                        Select::make('equipment_model_id')->label('Shared model')
+                            ->relationship('catalogModel', 'name')
+                            ->getOptionLabelFromRecordUsing(fn (EquipmentModel $record) => $record->brand->name.' - '.$record->name)
+                            ->searchable()->requiredWithout('equipment_id')
+                            ->helperText('A shared manual appears for every machine of this model.'),
                     ])->columnSpan(2)->columns(2),
 
                     RichEditor::make('descript')
@@ -147,8 +154,23 @@ class ManualResource extends Resource
         return $table
             ->columns([
                 TextColumn::make('equipment_name')
-                    ->label('Equipment')
-                    ->searchable(),
+                    ->label('Equipment / shared model'),
+            ])
+            ->filters([
+                Tables\Filters\SelectFilter::make('equipment')->label('Equipment')
+                    ->options(fn () => Equipment::with('catalogModel.brand', 'owner')->orderBy('model')->get()
+                        ->mapWithKeys(fn (Equipment $record) => [$record->id => $record->selectionLabel()]))
+                    ->searchable()
+                    ->query(function ($query, array $data) {
+                        $equipment = Equipment::find($data['value'] ?? null);
+                        if (! $equipment) {
+                            return $query;
+                        }
+
+                        return $query->where(fn ($manuals) => $manuals->where('equipment_id', $equipment->id)
+                            ->when($equipment->equipment_model_id, fn ($shared) => $shared
+                                ->orWhere('equipment_model_id', $equipment->equipment_model_id)));
+                    }),
             ])
             ->recordUrl(fn (Model $record) => static::getUrl('view', ['record' => $record])
             )

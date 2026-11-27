@@ -83,7 +83,8 @@ class InvoiceResource extends Resource
                 ->modalContent(fn (Invoice $record) => view('filament.invoices.details', ['invoice' => $record]))
                 ->form([
                     Forms\Components\Select::make('operation_type')->options(['distribution' => 'Distribution', 'installation' => 'Installation'])->required()->live(),
-                    Forms\Components\Select::make('equipment_id')->options(fn () => Equipment::orderBy('model')->pluck('model', 'id'))->searchable()
+                    Forms\Components\Select::make('equipment_id')->options(fn () => Equipment::with('catalogModel.brand', 'owner')->orderBy('model')->get()
+                        ->mapWithKeys(fn (Equipment $equipment) => [$equipment->id => $equipment->selectionLabel()]))->searchable()
                         ->visible(fn (Get $get) => $get('operation_type') === 'installation')->required(fn (Get $get) => $get('operation_type') === 'installation'),
                     Forms\Components\Select::make('inst_manager_user_id')->label('Installation Manager')->options(fn () => User::role('Inst_Manager')->pluck('name', 'id'))->searchable()
                         ->visible(fn (Get $get) => $get('operation_type') === 'installation')->required(fn (Get $get) => $get('operation_type') === 'installation'),

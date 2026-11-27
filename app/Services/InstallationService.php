@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Http\Controllers\WorkOrderController;
 use App\Models\Customer;
+use App\Models\Equipment;
 use App\Models\Installation;
 use App\Models\InvoiceEvent;
 use App\Models\WorkOrder;
@@ -15,6 +16,16 @@ class InstallationService
     public function create(array $data, bool $cloneSteps = true): Installation
     {
         return DB::transaction(function () use ($data, $cloneSteps) {
+            $equipment = Equipment::whereKey($data['equipment_id'])->lockForUpdate()->firstOrFail();
+            if (array_key_exists('customer_id', $equipment->getAttributes())) {
+                if (! $equipment->customer_id || (int) $data['customer_id'] !== (int) $equipment->customer_id) {
+                    throw ValidationException::withMessages(['data.customer_id' => 'Select the current owner of this equipment.']);
+                }
+                if (! $equipment->catalogModelForDisplay() || $equipment->catalogModelForDisplay()->guide_needs_review) {
+                    throw ValidationException::withMessages(['data.equipment_id' => 'Review the equipment model and its installation guide before creating an installation.']);
+                }
+                $data['customer_quickbooks_id'] = $equipment->owner->quickbooks_id;
+            }
             $installation = Installation::create([
                 ...$data,
                 'customer_quickbooks_id' => $data['customer_quickbooks_id']
@@ -73,15 +84,14 @@ class InstallationService
 
     public function cloneTemplateSteps(Installation $installation): void
     {
-        $templates = $installation->equipment
-            ->installationTemplateSteps()
-            ->orderBy('sort_order')
-            ->get();
-
         $installation->steps()->delete();
+        $installation->steps()->createMany($this->templateStepData($installation->equipment));
+    }
 
-        foreach ($templates as $template) {
-            $installation->steps()->create([
+    public function templateStepData(Equipment $equipment): array
+    {
+        return $equipment->templateStepsForNewInstallation()->get()
+            ->map(fn ($template) => [
                 'title' => $template->title,
                 'description' => $template->description,
                 'sort_order' => $template->sort_order,
@@ -90,7 +100,6 @@ class InstallationService
                 'is_done' => false,
                 'done_at' => null,
                 'notes' => null,
-            ]);
-        }
+            ])->all();
     }
 }

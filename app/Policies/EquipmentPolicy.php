@@ -4,61 +4,52 @@ namespace App\Policies;
 
 use App\Models\Equipment;
 use App\Models\User;
-use Illuminate\Auth\Access\Response;
 
 class EquipmentPolicy
 {
-    /**
-     * Determine whether the user can view any models.
-     */
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['Admin','Manager']);
+        return $this->create($user);
     }
 
-    /**
-     * Determine whether the user can view the model.
-     */
     public function view(User $user, Equipment $equipment): bool
     {
-        return true;
+        return $this->viewAny($user);
     }
 
-    /**
-     * Determine whether the user can create models.
-     */
     public function create(User $user): bool
     {
-        return true;
+        return ! $user->hasRole('Customer') && $user->hasRole(['Admin', 'Manager']);
     }
 
-    /**
-     * Determine whether the user can update the model.
-     */
     public function update(User $user, Equipment $equipment): bool
     {
-        return true;
+        return $this->create($user);
     }
 
-    /**
-     * Determine whether the user can delete the model.
-     */
+    public function transfer(User $user, Equipment $equipment): bool
+    {
+        return $this->update($user, $equipment);
+    }
+
     public function delete(User $user, Equipment $equipment): bool
     {
-        return true;
+        return $this->update($user, $equipment)
+            && ! $equipment->customer_id
+            && ! $equipment->installations()->exists()
+            && ! $equipment->installedProducts()->exists()
+            && ! $equipment->ownershipTransfers()->exists()
+            && ! $equipment->installationTemplateSteps()->exists()
+            && ! $equipment->manual()->exists()
+            && ! $equipment->equi_asset()->exists()
+            && ! $equipment->equi_goods()->exists();
     }
 
-    /**
-     * Determine whether the user can restore the model.
-     */
     public function restore(User $user, Equipment $equipment): bool
     {
         return false;
     }
 
-    /**
-     * Determine whether the user can permanently delete the model.
-     */
     public function forceDelete(User $user, Equipment $equipment): bool
     {
         return false;
