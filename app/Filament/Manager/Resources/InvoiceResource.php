@@ -92,9 +92,9 @@ class InvoiceResource extends Resource
                 ])->action(fn (Invoice $record, array $data) => app(InvoiceClassificationService::class)->classify($record->id, $data['operation_type'], auth()->user(), $data)),
             Tables\Actions\Action::make('workOrder')->label(fn (Invoice $record) => ucfirst($record->operation_type ?? '').' Created / View Work Order')
                 ->visible(fn (Invoice $record) => (bool) $record->work_order_id)->url(fn (Invoice $record) => WorkOrderResource::getUrl('view', ['record' => $record->work_order_id])),
-            Tables\Actions\Action::make('pdf')->label('Print Invoice')->url(fn (Invoice $record) => route('invoices.pdf', $record))->openUrlInNewTab(),
-            Tables\Actions\Action::make('packing')->label('Print Packing Slip')->visible(fn (Invoice $record) => $record->operation_type === 'distribution' && $record->work_order_id)
-                ->url(fn (Invoice $record) => route('invoices.packing-slip', $record))->openUrlInNewTab(),
+            Tables\Actions\Action::make('localPdf')->label('Print Invoice')->url(fn (Invoice $record) => route('invoices.local-pdf', $record)),
+            Tables\Actions\Action::make('packing')->label('Print Packing Slip')->url(fn (Invoice $record) => route('invoices.packing-slip', $record)),
+            Tables\Actions\Action::make('pdf')->label('Original QuickBooks Invoice')->url(fn (Invoice $record) => route('invoices.pdf', $record))->openUrlInNewTab(),
         ])->bulkActions([])->defaultSort('issued_at', 'desc');
     }
 

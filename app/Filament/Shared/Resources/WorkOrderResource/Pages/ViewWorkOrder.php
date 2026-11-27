@@ -22,7 +22,11 @@ class ViewWorkOrder extends ViewRecord
 
     protected function getHeaderActions(): array
     {
-        return [Action::make('assignInvoice')->label('Assign Invoice')->requiresConfirmation()
+        return [
+            $this->invoiceDocumentAction('invoices.local-pdf', 'Print Invoice'),
+            $this->invoiceDocumentAction('invoices.packing-slip', 'Print Packing Slip'),
+            $this->invoiceDocumentAction('invoices.pdf', 'Original QuickBooks Invoice')->openUrlInNewTab(),
+            Action::make('assignInvoice')->label('Assign Invoice')->requiresConfirmation()
             ->visible(fn () => Gate::allows('assignInvoice', $this->record) && ! $this->record->invoice()->exists())
             ->modalDescription('Link an imported Invoice to this existing installation. Its status, products and history will remain unchanged.')
             ->form([Select::make('invoice_id')->label('Invoice No.')->required()->searchable()
@@ -34,6 +38,13 @@ class ViewWorkOrder extends ViewRecord
                 app(InvoiceClassificationService::class)->assignToInstallation($this->record->id, (int) $data['invoice_id'], Auth::user());
                 $this->record->refresh();
             })];
+    }
+
+    private function invoiceDocumentAction(string $route, string $label): Action
+    {
+        return Action::make($route)->label($label)
+            ->visible(fn () => $this->record->invoice && Gate::allows('view', $this->record->invoice))
+            ->url(fn () => $this->record->invoice ? route($route, $this->record->invoice) : null);
     }
 
     private function availableInvoices(): Builder

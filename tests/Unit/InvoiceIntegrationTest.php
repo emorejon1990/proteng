@@ -14,7 +14,6 @@ use App\Services\CustomerSyncService;
 use App\Services\DistributionSelectionService;
 use App\Services\InvoiceClassificationService;
 use App\Services\InvoiceDataException;
-use App\Services\InvoiceDocumentService;
 use App\Services\InvoiceOperationalException;
 use App\Services\InvoiceRequirements;
 use App\Services\InvoiceSyncService;
@@ -226,14 +225,16 @@ it('returns a clear error if the invoice PDF fails', function () {
     $this->gateway->shouldReceive('pdf')->andThrow(new RuntimeException('No PDF'));
     $this->get(route('invoices.pdf', $invoice))->assertStatus(502);
 });
-it('generates a packing slip from operation quantities with no service or financial fields', function () {
+it('downloads both local documents for an imported invoice without a Work Order or a QuickBooks request', function () {
     $invoice = importInvoice();
-    $order = classifyInvoice($invoice);
-    $html = view('pdf.invoice-packing-slip', ['invoice' => $invoice->fresh(), 'order' => $order->load('workOrderAssets.asset')])->render();
-    expect($html)->toContain('Model A', 'Shipping street', 'INV-500', 'Tube')->not->toContain('Labor', 'Unit Price', 'Taxes', 'Balance', '110.00');
-    $pdf = app(InvoiceDocumentService::class)->packingSlip($invoice, User::find(1));
-    expect($pdf)->toStartWith('%PDF-');
-    $this->get(route('invoices.packing-slip', $invoice))->assertOk();
+    $this->gateway->shouldNotReceive('pdf');
+    expect($invoice->work_order_id)->toBeNull();
+    foreach (['invoices.local-pdf' => 'invoice-INV-500.pdf', 'invoices.packing-slip' => 'packing-slip-INV-500.pdf'] as $route => $name) {
+        $response = $this->get(route($route, $invoice))->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf')
+            ->assertDownload($name);
+        expect($response->getContent())->toStartWith('%PDF-');
+    }
 });
 it('paginates all invoices and records failed synchronization without losing data', function () {
     User::find(1)->assignRole('Admin');
