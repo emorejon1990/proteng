@@ -42,7 +42,7 @@
             @foreach ($selections as $selection)
                 <li wire:key="distribution-selection-{{ $selection->id }}">
                     {{ $selection->distribution_serial }} · {{ $selection->distributionAsset?->name }}
-                    @if ($open)<x-filament::button color="gray" size="sm" wire:click="removeSelection({{ $selection->id }})" wire:loading.attr="disabled">Retirar</x-filament::button>@endif
+                    @if ($canRemove)<x-filament::button color="gray" size="sm" wire:click="removeSelection({{ $selection->id }})" wire:loading.attr="disabled">Retirar</x-filament::button>@endif
                 </li>
             @endforeach
         </ul>
