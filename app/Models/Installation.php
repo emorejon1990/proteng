@@ -69,6 +69,11 @@ class Installation extends Model
         return $this->hasMany(InstallationStep::class)->orderBy('sort_order');
     }
 
+    public function installedProducts(): HasMany
+    {
+        return $this->hasMany(InstalledProduct::class);
+    }
+
     public function assignment(): HasOne
     {
         return $this->hasOne(InstallationAssignment::class);

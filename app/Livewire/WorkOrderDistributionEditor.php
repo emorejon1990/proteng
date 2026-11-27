@@ -94,6 +94,8 @@ class WorkOrderDistributionEditor extends Component
         $complete = $models->isNotEmpty() && $models->every(fn ($model) => $model['selected'] === $model['quantity'])
             && $selections->count() === array_sum($requirements);
 
-        return view('livewire.work-order-distribution-editor', compact('models', 'selections', 'complete', 'open', 'printInvoice'));
+        $canRemove = $open && $service->canRemove(Auth::user());
+
+        return view('livewire.work-order-distribution-editor', compact('models', 'selections', 'complete', 'open', 'printInvoice', 'canRemove'));
     }
 }
