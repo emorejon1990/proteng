@@ -57,11 +57,17 @@ afterEach(fn () => DB::disconnect('sqlite'));
 
 it('shows Print Invoice and serves the original PDF for distribution roles without mutations', function ($role) {
     $this->actor->syncRoles($role);
-    $url = route('invoices.pdf', ['invoice' => $this->invoice, 'work_order' => $this->order->id]);
+    $params = ['invoice' => $this->invoice, 'work_order' => $this->order->id];
+    $url = route('invoices.pdf', $params);
     $before = app(InvoiceSelectiveVerification::class)->snapshot('900');
     $assets = DB::table('asset')->orderBy('id')->get()->toArray();
     Livewire::test(WorkOrderDistributionEditor::class, ['workOrder' => $this->order])
-        ->assertSee('Print Invoice')->assertSeeHtml($url)->assertSeeHtml('target="_blank"');
+        ->assertSee('Print Invoice')->assertSee('Print Packing Slip')->assertSee('Original QuickBooks Invoice')
+        ->assertSeeHtml($url)->assertSeeHtml('target="_blank"');
+    foreach (['invoices.local-pdf', 'invoices.packing-slip'] as $route) {
+        $response = $this->get(route($route, $params))->assertOk()->assertHeader('Content-Type', 'application/pdf');
+        expect($response->getContent())->toStartWith('%PDF-');
+    }
     $this->gateway->shouldReceive('pdf')->once()->with(Mockery::on(fn ($invoice) => $invoice->id === $this->invoice->id))
         ->andReturn('%PDF-1.4 original QuickBooks bytes');
     $this->get($url)->assertOk()->assertHeader('Content-Type', 'application/pdf')
@@ -82,6 +88,8 @@ it('does not grant Workers general invoice or financial permissions', function (
         ->and(Gate::allows('create', Invoice::class))->toBeFalse()
         ->and(InvoiceResource::canAccess())->toBeFalse();
     $this->get(route('invoices.pdf', $this->invoice))->assertForbidden();
+    $this->get(route('invoices.local-pdf', $this->invoice))->assertForbidden();
+    $this->get(route('invoices.packing-slip', $this->invoice))->assertForbidden();
 });
 
 it('rejects mismatched inactive and nonDistribution contexts before fetching a PDF', function ($case) {
@@ -97,7 +105,9 @@ it('rejects mismatched inactive and nonDistribution contexts before fetching a P
     } else {
         $this->invoice->update(['operation_type' => 'installation']);
     }
-    $this->get(route('invoices.pdf', ['invoice' => $this->invoice, 'work_order' => $order->id]))->assertForbidden();
+    foreach (['invoices.pdf', 'invoices.local-pdf', 'invoices.packing-slip'] as $route) {
+        $this->get(route($route, ['invoice' => $this->invoice, 'work_order' => $order->id]))->assertForbidden();
+    }
 })->with(['mismatched', 'inactive', 'wrong_type', 'wrong_invoice_operation']);
 
 it('does not show a print button without a linked Invoice', function () {
@@ -111,10 +121,14 @@ it('preserves existing Admin Manager and Customer invoice PDF permissions', func
     $this->actor->syncRoles($role);
     $this->gateway->shouldReceive('pdf')->once()->andReturn('%PDF-1.4 original');
     $this->get(route('invoices.pdf', $this->invoice))->assertOk()->assertContent('%PDF-1.4 original');
+    $this->get(route('invoices.local-pdf', $this->invoice))->assertOk();
+    $this->get(route('invoices.packing-slip', $this->invoice))->assertOk();
     if ($role === 'Customer') {
         $other = Customer::create(['quickbooks_id' => '20', 'display_name' => 'Other']);
         $this->invoice->update(['customer_id' => $other->id]);
         $this->get(route('invoices.pdf', $this->invoice))->assertForbidden();
+        $this->get(route('invoices.local-pdf', $this->invoice))->assertForbidden();
+        $this->get(route('invoices.packing-slip', $this->invoice))->assertForbidden();
     }
 })->with(['Admin', 'Manager', 'Customer']);
 

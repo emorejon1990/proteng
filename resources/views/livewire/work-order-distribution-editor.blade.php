@@ -1,8 +1,15 @@
 <div class="p-4 border rounded bg-white shadow space-y-4" x-data="{}"
      x-on:distribution-selection-changed.window="if (Number($event.detail.orderId) === {{ $workOrder->id }}) $nextTick(() => $refs.serial?.focus())">
     @if ($printInvoice)
-        <x-filament::button tag="a" :href="route('invoices.pdf', ['invoice' => $printInvoice, 'work_order' => $workOrder->id])" target="_blank" rel="noopener noreferrer">
+        @php($documentParams = ['invoice' => $printInvoice, 'work_order' => $workOrder->id])
+        <x-filament::button tag="a" :href="route('invoices.local-pdf', $documentParams)">
             Print Invoice
+        </x-filament::button>
+        <x-filament::button tag="a" :href="route('invoices.packing-slip', $documentParams)">
+            Print Packing Slip
+        </x-filament::button>
+        <x-filament::button tag="a" :href="route('invoices.pdf', $documentParams)" target="_blank" rel="noopener noreferrer">
+            Original QuickBooks Invoice
         </x-filament::button>
     @endif
     <table class="w-full text-left">

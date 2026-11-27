@@ -97,8 +97,12 @@ class InvoiceResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
 
+                Tables\Actions\Action::make('localPdf')->label('Print Invoice')
+                    ->url(fn (Invoice $record) => route('invoices.local-pdf', $record)),
+                Tables\Actions\Action::make('packing')->label('Print Packing Slip')
+                    ->url(fn (Invoice $record) => route('invoices.packing-slip', $record)),
                 Tables\Actions\Action::make('pdf')
-                    ->label('Download PDF')
+                    ->label('Original QuickBooks Invoice')
                     ->icon('heroicon-o-arrow-down-tray')
                     ->url(fn (Invoice $record) => route('invoices.pdf', $record), shouldOpenInNewTab: true),
             ])

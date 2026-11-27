@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\InvoicePackingSlipController;
+use App\Http\Controllers\LocalInvoiceDocumentController;
 use App\Http\Controllers\ProductsController;
 use App\Http\Controllers\ProductSerialPreviewController;
 use App\Http\Controllers\QuickBooksController;
@@ -64,6 +64,8 @@ Route::middleware(['web', 'auth'])->group(function () {
 
     Route::get('/invoices/{invoice}/pdf', QuickBooksInvoicePdfController::class)
         ->name('invoices.pdf');
-    Route::get('/invoices/{invoice}/packing-slip', InvoicePackingSlipController::class)
+    Route::get('/invoices/{invoice}/local-pdf', [LocalInvoiceDocumentController::class, 'invoice'])
+        ->name('invoices.local-pdf');
+    Route::get('/invoices/{invoice}/packing-slip', [LocalInvoiceDocumentController::class, 'packingSlip'])
         ->name('invoices.packing-slip');
 });
