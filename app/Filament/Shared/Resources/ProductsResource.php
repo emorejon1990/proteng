@@ -120,6 +120,14 @@ class ProductsResource extends Resource
                 // Agregá filtros si querés
             ])
             ->actions([
+                Tables\Actions\Action::make('traceability')->label('Product traceability')
+                    ->authorize(fn (): bool => static::canAccess())
+                    ->modalContent(fn (Products $record) => view('filament.products.traceability', [
+                        'product' => $record->load(['asset', 'status', 'location', 'productionWorkOrder']),
+                        'installedProducts' => $record->installedProducts()->withTraceabilityDetails()->get(),
+                        'movements' => $record->history()->with(['user', 'workOrder'])->orderByDesc('date')->orderByDesc('id')->get(),
+                    ]))
+                    ->modalSubmitAction(false),
                 Tables\Actions\EditAction::make(),
             ])
             ->bulkActions([

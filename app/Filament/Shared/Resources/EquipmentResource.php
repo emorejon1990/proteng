@@ -98,6 +98,12 @@ class EquipmentResource extends Resource
                 TextColumn::make('company'),
             ])
             ->actions([
+                Tables\Actions\Action::make('installedProducts')->label('Installed products')
+                    ->authorize(fn (Equipment $record): bool => static::canView($record))
+                    ->modalContent(fn (Equipment $record) => view('filament.installations.installed-products', [
+                        'installedProducts' => $record->installedProducts()->withTraceabilityDetails()->get(),
+                    ]))
+                    ->modalSubmitAction(false),
                 Tables\Actions\EditAction::make(),
             ]);
     }

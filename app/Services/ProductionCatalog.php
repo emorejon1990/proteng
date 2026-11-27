@@ -12,6 +12,7 @@ class ProductionCatalog
         'distribution_type' => ['wo_type', ['distribution']],
         'installation_type' => ['wo_type', ['installation']],
         'distribution_location' => ['locations', ['distribution']],
+        'installed_location' => ['locations', ['installed']],
         'assemble_center' => ['work_centers', ['assemble', 'assembly']],
         'production_location' => ['locations', ['production']],
         'review_type' => ['wo_type', ['review']],
