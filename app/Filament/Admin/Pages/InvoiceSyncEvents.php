@@ -30,12 +30,17 @@ class InvoiceSyncEvents extends Page implements HasTable
         return $table->query(InvoiceEvent::query())->columns([
             TextColumn::make('created_at')->dateTime()->sortable(),
             TextColumn::make('event')->searchable(),
-            TextColumn::make('invoice.invoice_number')->searchable(),
+            TextColumn::make('invoice.invoice_number')->searchable()
+                ->getStateUsing(fn (InvoiceEvent $record) => $record->invoice?->invoice_number ?? ($record->metadata['invoice_number'] ?? null)),
             TextColumn::make('metadata.quickbooks_id')->label('QuickBooks ID')->getStateUsing(fn (InvoiceEvent $record) => $record->metadata['quickbooks_id'] ?? $record->invoice?->quickbooks_id),
             TextColumn::make('work_order_id'),
             TextColumn::make('installation_id'),
             TextColumn::make('metadata.error')->wrap(),
             TextColumn::make('metadata.reason')->wrap(),
+            TextColumn::make('review_reasons')->label('Review reasons')->wrap()
+                ->getStateUsing(fn (InvoiceEvent $record) => collect($record->metadata['operational_diagnostics'] ?? [])->pluck('message')->filter()->all()),
+            TextColumn::make('metadata.filters.payment_filter')->label('Payment filter')->toggleable(isToggledHiddenByDefault: true),
+            TextColumn::make('metadata.filters.category_filter')->label('Category filter')->toggleable(isToggledHiddenByDefault: true),
             TextColumn::make('metadata.entity'),
             TextColumn::make('metadata.line_type'),
             TextColumn::make('metadata.line_index')->label('Line index (0-based)'),
@@ -44,7 +49,7 @@ class InvoiceSyncEvents extends Page implements HasTable
             TextColumn::make('metadata.failed')->label('Skipped'),
         ])->filters([
             SelectFilter::make('event')->options(['Invoice Sync Failed' => 'Sync Failed', 'Invoice Sync Conflict' => 'Sync Conflict',
-                'Invoice Sync Skipped' => 'Data error', 'Invoice Sync Partial' => 'Partial', 'Invoice Sync Stopped' => 'Stopped', 'Invoice Sync Completed' => 'Completed', 'Invoice Imported' => 'Imported', 'Invoice Updated' => 'Updated', 'Invoice Unchanged' => 'Unchanged', 'Invoice Source Unavailable' => 'Source Unavailable', 'Invoice Classified' => 'Classified']),
+                'Invoice Filter Review' => 'Filter review', 'Invoice Sync Skipped' => 'Data error', 'Invoice Sync Partial' => 'Partial', 'Invoice Sync Stopped' => 'Stopped', 'Invoice Sync Completed' => 'Completed', 'Invoice Imported' => 'Imported', 'Invoice Updated' => 'Updated', 'Invoice Unchanged' => 'Unchanged', 'Invoice Source Unavailable' => 'Source Unavailable', 'Invoice Classified' => 'Classified']),
         ])->defaultSort('id', 'desc');
     }
 }

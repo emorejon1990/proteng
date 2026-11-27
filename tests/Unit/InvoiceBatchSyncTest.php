@@ -165,6 +165,29 @@ it('uses unchanged exclusion and review filters and continues past invalid invoi
     $state = $service->start($this->actor);
     $state = finishBatch($this->actor, $state['run_id']);
     expect($state['summary'])->toBe(['processed' => 4, 'synced' => 1, 'excluded' => 1, 'failed' => 1, 'review' => 1]);
+    $review = InvoiceEvent::where('event', 'Invoice Filter Review')->sole();
+    expect($review->metadata['invoice_number'])->toBe('000-501-A')
+        ->and($review->metadata['operational_diagnostics'][0]['code'])->toBe('payment_review');
+});
+
+it('counts imported reviews and rechecks a repaired Asset mapping without duplicating unchanged lines', function () {
+    $this->payloads = [$this->payloads[0]];
+    DB::table('asset')->where('id', 31)->update(['quickbooks_id' => null]);
+    $batch = app(InvoiceBatchSyncService::class);
+    $state = finishBatch($this->actor, $batch->start($this->actor)['run_id']);
+    $invoice = Invoice::sole();
+    $lineId = $invoice->lines()->sole()->id;
+    expect($state['summary']['review'])->toBe(1)->and($state['summary']['synced'])->toBe(0)
+        ->and($invoice->operation_status)->toBe('requires_review');
+    expect(view('filament.invoices.details', ['invoice' => $invoice])->render())
+        ->toContain('needs an Asset mapping', 'Line 1', 'ItemRef 100');
+
+    DB::table('asset')->where('id', 31)->update(['quickbooks_id' => '100']);
+    $state = finishBatch($this->actor, $batch->start($this->actor)['run_id']);
+    expect($state['summary']['synced'])->toBe(1)->and($state['summary']['review'])->toBe(0)
+        ->and(Invoice::count())->toBe(1)->and($invoice->fresh()->operation_status)->toBe('unclassified')
+        ->and($invoice->lines()->sole()->id)->toBe($lineId)
+        ->and($invoice->lines()->sole()->asset_id)->toBe(31);
 });
 
 it('preserves imported linked orders snapshots invoice numbers and line identities', function (string $type) {

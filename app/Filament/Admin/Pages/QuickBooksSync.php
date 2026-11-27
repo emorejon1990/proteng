@@ -182,9 +182,9 @@ class QuickBooksSync extends Page
             Action::make('syncAll')
                 ->label('Sync ALL')
                 ->action(function () {
+                    abort_unless(Auth::user()?->hasRole('Admin') && ! Auth::user()->hasRole('Customer'), 403);
                     app(QuickBooksSyncLock::class)->run(function () {
                         app(CustomerSyncService::class)->sync();
-                        abort_unless(Auth::user()?->hasRole('Admin'), 403);
                         try {
                             $summary = app(InvoiceSyncService::class)->sync();
                         } catch (\Throwable $e) {
@@ -196,9 +196,9 @@ class QuickBooksSync extends Page
                         app(AssetSyncService::class)->sync();
 
                         Notification::make()
-                            ->title($summary['failed'] ? 'Sync partially completed' : 'Customers + Invoices + Products synced successfully')
-                            ->body($summary['synced'].' invoices synchronized; '.$summary['failed'].' skipped.')
-                            ->status($summary['failed'] ? 'warning' : 'success')
+                            ->title($summary['failed'] || $summary['review'] ? 'Sync partially completed' : 'Customers + Invoices + Products synced successfully')
+                            ->body($summary['synced'].' invoices synchronized; '.$summary['excluded'].' excluded; '.$summary['review'].' require review; '.$summary['failed'].' failed.')
+                            ->status($summary['failed'] || $summary['review'] ? 'warning' : 'success')
                             ->send();
                     });
                 }),
