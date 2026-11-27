@@ -22,6 +22,11 @@ class DistributionSelectionService
         abort_unless($actor?->hasRole(['Admin', 'Manager', 'Worker']), 403);
     }
 
+    public function canRemove(?User $actor): bool
+    {
+        return $actor?->hasRole(['Admin', 'Manager']) ?? false;
+    }
+
     public function orders(): Builder
     {
         return WorkOrder::where('type_id', $this->catalog->id('distribution_type'))
@@ -140,6 +145,8 @@ class DistributionSelectionService
 
     public function remove(int $orderId, int $associationId, ?User $actor): void
     {
+        abort_unless($this->canRemove($actor), 403);
+
         DB::transaction(function () use ($orderId, $associationId, $actor) {
             $order = $this->lockedOrder($orderId, $actor);
             $association = $this->reservations($order)->whereKey($associationId)->first();
