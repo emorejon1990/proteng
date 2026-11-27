@@ -11,10 +11,12 @@ use Filament\Forms\Components\Select;
 use Filament\Infolists\Components\RepeatableEntry;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Infolists\Infolist;
+use Filament\Notifications\Notification;
 use Filament\Resources\Pages\ViewRecord;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\ValidationException;
 
 class ViewWorkOrder extends ViewRecord
 {
@@ -31,12 +33,19 @@ class ViewWorkOrder extends ViewRecord
             ->modalDescription('Link an imported Invoice to this existing installation. Its status, products and history will remain unchanged.')
             ->form([Select::make('invoice_id')->label('Invoice No.')->required()->searchable()
                 ->getSearchResultsUsing(fn (string $search) => $this->availableInvoices()
-                    ->where('invoice_number', 'like', '%'.$search.'%')->orderBy('invoice_number')->limit(25)->get()
-                    ->mapWithKeys(fn (Invoice $invoice) => [$invoice->id => $this->invoiceLabel($invoice)])->all())
-                ->getOptionLabelUsing(fn ($value) => ($invoice = $this->availableInvoices()->find($value)) ? $this->invoiceLabel($invoice) : null)])
-            ->action(function (array $data) {
-                app(InvoiceClassificationService::class)->assignToInstallation($this->record->id, (int) $data['invoice_id'], Auth::user());
+                    ->where('invoice_number', 'like', '%'.$search.'%')->orderBy('invoice_number')->orderBy('id')->lazy(50)
+                    ->mapWithKeys(fn (Invoice $invoice) => [$invoice->id => $this->eligibleInvoiceLabel($invoice)])
+                    ->filter()->take(25)->all())
+                ->getOptionLabelUsing(fn ($value) => ($invoice = $this->availableInvoices()->find($value)) ? $this->eligibleInvoiceLabel($invoice) : null)])
+            ->action(function (array $data, Action $action) {
+                try {
+                    app(InvoiceClassificationService::class)->assignToInstallation($this->record->id, (int) $data['invoice_id'], Auth::user());
+                } catch (ValidationException $exception) {
+                    Notification::make()->title('Invoice could not be assigned')->body($exception->getMessage())->danger()->send();
+                    $action->halt();
+                }
                 $this->record->refresh();
+                Notification::make()->title('Invoice linked to this Work Order')->success()->send();
             })];
     }
 
@@ -58,8 +67,16 @@ class ViewWorkOrder extends ViewRecord
             ->whereNotIn('operation_status', ['requires_review', 'sync_conflict']);
     }
 
-    private function invoiceLabel(Invoice $invoice): string
+    private function eligibleInvoiceLabel(Invoice $invoice): ?string
     {
+        try {
+            app(InvoiceClassificationService::class)->installationInvoiceRequirements(
+                $invoice, $this->record, $this->record->installation, $invoice->customer,
+            );
+        } catch (ValidationException) {
+            return null;
+        }
+
         return ($invoice->invoice_number ?? '—').' · '.$invoice->customer?->display_name.' · '.($invoice->issued_at?->format('Y-m-d') ?? '—').' · QB '.$invoice->quickbooks_id;
     }
 
