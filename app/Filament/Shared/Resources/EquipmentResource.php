@@ -11,6 +11,8 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Form;
+use Filament\Infolists\Components\TextEntry;
+use Filament\Infolists\Infolist;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
@@ -32,6 +34,7 @@ class EquipmentResource extends Resource
                     TextInput::make('brand'),
                     TextInput::make('model'),
                     TextInput::make('company'),
+                    TextInput::make('identifier')->label('Equipment Identifier')->maxLength(255),
 
                     Repeater::make('installationTemplateSteps')
                         ->relationship('installationTemplateSteps')
@@ -89,6 +92,16 @@ class EquipmentResource extends Resource
         ]);
     }
 
+    public static function infolist(Infolist $infolist): Infolist
+    {
+        return $infolist->schema([
+            TextEntry::make('brand'),
+            TextEntry::make('model'),
+            TextEntry::make('company'),
+            TextEntry::make('identifier')->label('Equipment Identifier')->placeholder('Not specified'),
+        ])->columns(2);
+    }
+
     public static function table(Table $table): Table
     {
         return $table
@@ -96,8 +109,10 @@ class EquipmentResource extends Resource
                 TextColumn::make('brand'),
                 TextColumn::make('model'),
                 TextColumn::make('company'),
+                TextColumn::make('identifier')->label('Equipment Identifier')->searchable(),
             ])
             ->actions([
+                Tables\Actions\ViewAction::make(),
                 Tables\Actions\EditAction::make(),
             ]);
     }

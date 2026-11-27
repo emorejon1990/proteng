@@ -16,3 +16,8 @@ La rama fix/distribution-withdraw-permissions parte de origin/main en 6116be3. R
 
 Sin migraciones ni dependencias funcionales con Equipment o Installation. PROJECT_MEMORY.md puede requerir combinar las secciones al integrar. Pendiente de validar Admin, Manager, Worker, llamada Livewire directa, orden ajena y regresion de escaneo y confirmacion. Las pruebas existentes que esperan que Worker retire una reserva deben alinearse con la nueva regla durante la fase de validacion.
 
+## Equipment - identificador flexible
+
+La rama feature/equipment-flexible-identifier parte de origin/main en 6116be3. Equipment Identifier admite texto opcional de hasta 255 caracteres, sin formato VIN ni unicidad porque el valor puede venir de distintos clientes. Se expone en el formulario compartido, detalle de solo lectura y listado con busqueda. Se conservan brand, model y company. Installation usa equipment_id y conserva sus relaciones con Customer y Work Order.
+
+Pendiente aplicar 2026_11_27_100000_add_identifier_to_equipment_table.php antes de habilitar el recurso actualizado. La migracion agrega una columna nullable y deja los registros historicos sin identificador. El rollback elimina el campo y sus valores. Sin dependencia funcional de las otras ramas. Al integrar con trazabilidad, combinar las acciones de EquipmentResource y las secciones de PROJECT_MEMORY.md. Pendiente validar valores vacios, VIN y codigos libres, creacion, edicion, detalle y busqueda.
